@@ -3,6 +3,7 @@
 
 // Libraries
 #include <stdlib.h>
+#include <ctype.h>
 
 #define BUFFER 64
 
