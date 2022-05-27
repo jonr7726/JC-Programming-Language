@@ -1,0 +1,9 @@
+# Object files
+*.o
+build/*
+
+# Testing files
+testing/*
+
+# Compiled program
+main
