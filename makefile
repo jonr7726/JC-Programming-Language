@@ -1,7 +1,12 @@
-TARGET = parser
-YFLAGS = -Wcounterexamples
+INPUT = input.jc
+OUTPUT = output
 
-all: $(TARGET)
+all:
+	python main.py -ir $(INPUT) -o $(OUTPUT)
 
-$(TARGET): lex.yy.c y.tab.c
-	gcc lex.yy.c y.tab
+interpret:
+	python main.py -ir $(INPUT) -o $(OUTPUT) -i
+
+ir:
+	llc -filetype=obj $(OUTPUT).ll
+	gcc $(OUTPUT).o -o $(OUTPUT) -no-pie

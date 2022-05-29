@@ -1,5 +1,5 @@
 from llvmlite import ir, binding
-
+from .lang.literals import Integer, Character, String
 
 class CodeGen():
     def __init__(self):
@@ -35,8 +35,7 @@ class CodeGen():
 
     def _declare_print_function(self):
         # Declare Printf function
-        voidptr_ty = ir.IntType(8).as_pointer()
-        printf_ty = ir.FunctionType(ir.IntType(32), [voidptr_ty], var_arg=True)
+        printf_ty = ir.FunctionType(Integer.TYPE, [String.TYPE], var_arg=True)
         printf = ir.Function(self.module, printf_ty, name="printf")
         self.printf = printf
 

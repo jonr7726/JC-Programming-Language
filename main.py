@@ -3,7 +3,7 @@ import subprocess
 import compiler
 from compiler.error import Error
 
-EXTENSION = "toy"
+EXTENSION = "jc"
 
 SPACE = 9
 def format_space(string):
@@ -207,16 +207,20 @@ codegen.create_ir()
 codegen.save_ir(out_file + ".ll")
 
 # Compile to object code
-print(subprocess.call("llc -filetype=obj %s.ll" % out_file, shell = True))
+res =  subprocess.call("llc -filetype=obj %s.ll" % out_file, shell = True)
+if res != 0:
+    raise Error("Error compiling IR: %s" % res)
 
 # Delete IR file
-if options["keep_ir"].val == False:
-    print(subprocess.call("rm %s.ll" % out_file, shell = True))
+if options["ir"].val == False:
+    subprocess.call("rm %s.ll" % out_file, shell = True)
 
 # Compile to machine code
-print(subprocess.call("gcc %s.o -o %s -no-pie" % (out_file, out_file), shell = True))
+res = subprocess.call("gcc %s.o -o %s -no-pie" % (out_file, out_file), shell = True)
+if res != 0:
+    raise Error("Error compiling IR: %s" % res)
 
 # Run code and delete output file
 if options["interpret"].val == True:
-    print(subprocess.call("./%s" % out_file, shell = True))
-    print(subprocess.call("rm %s" % out_file, shell = True))
+    subprocess.call("./%s" % out_file, shell = True)
+    subprocess.call("rm %s" % out_file, shell = True)

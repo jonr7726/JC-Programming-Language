@@ -1,0 +1,7 @@
+print("Hello World!\n");
+
+double f = 7;
+double a = 1 + f / 2;
+double b = (1 + f) / 2;
+print("%f %f\n", a, b);
+print("%d %d\n", (int) a, (int) b);
