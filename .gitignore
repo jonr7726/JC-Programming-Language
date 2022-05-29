@@ -1,9 +1,17 @@
 # Object files
 *.o
 build/*
+__pycache__/
+*.ll
 
 # Testing files
 testing/*
+sample
 
 # Compiled program
 main
+parser
+output
+lex.yy.c
+y.tab.c
+y.tab.h
