@@ -14,6 +14,7 @@ class Parser():
                 # A list of all token names accepted by the parser.
                 "PRINT",
                 "MALLOC",
+                "REALLOC",
 
                 "OPEN_BRAC",
                 "CLOSE_BRAC",
@@ -34,10 +35,12 @@ class Parser():
 
                 "INT",
                 "DOUBLE",
+                "BOOL",
                 "CHAR",
 
                 "INT_VAL",
                 "FLOAT_VAL",
+                "BOOL_VAL",
                 "CHAR_VAL",
                 "STRING_VAL",
 
@@ -75,11 +78,11 @@ class Parser():
         @self.pg.production("statement : variable EQUALS expression")
         def variable_assignment(p):
             return Assignment(self.state, p[0], p[2])
-        """
-        @self.pg.production("statement : type variable EQUALS expression")
-        def variable_declaration_assignment(state, p):
-            return Assignment(self.builder, self.module, Declaration(self.builder, self.module, p[0], p[1]), p[3])
-        """
+        
+        @self.pg.production("statement : type IDENTIFIER EQUALS expression")
+        def variable_declaration_assignment(p):
+            return Assignment(self.state, Declaration(self.state, p[0], p[1].getstr()), p[3])
+        
         @self.pg.production("statement : expression")
         def expression(p):
             return p[0]
@@ -103,22 +106,25 @@ class Parser():
 
         @self.pg.production("type : INT")
         @self.pg.production("type : DOUBLE")
+        @self.pg.production("type : BOOL")
         @self.pg.production("type : CHAR")
         def type(p):
             if p[0].gettokentype() == "INT":
                 return Integer.TYPE
             elif p[0].gettokentype() == "DOUBLE":
                 return Double.TYPE
+            elif p[0].gettokentype() == "BOOL":
+                return Boolean.TYPE
             elif p[0].gettokentype() == "CHAR":
                 return Character.TYPE
         
         @self.pg.production("variable : IDENTIFIER")
         def variable(p):
-            return Variable(self.state, p[0].getstr(), [], load=True)
+            return Variable(self.state, p[0].getstr(), [], True)
 
         @self.pg.production("variable : AMPERSAND IDENTIFIER")
         def variable(p):
-            return Variable(self.state, p[0].getstr(), [], load=False)
+            return Variable(self.state, p[0].getstr(), [], False)
 
         @self.pg.production("variable : variable derefrence")
         def variable_derefrence(p):
@@ -131,6 +137,7 @@ class Parser():
 
         @self.pg.production("expression : PRINT OPEN_BRAC argument CLOSE_BRAC")
         @self.pg.production("expression : MALLOC OPEN_BRAC argument CLOSE_BRAC")
+        @self.pg.production("expression : REALLOC OPEN_BRAC argument CLOSE_BRAC")
         def intrinsic_function(p):
             return Function(self.state, p[0].getstr(), p[2])
 
@@ -169,13 +176,16 @@ class Parser():
 
         @self.pg.production("expression : INT_VAL")
         @self.pg.production("expression : FLOAT_VAL")
-        @self.pg.production("expression : STRING_VAL")
+        @self.pg.production("expression : BOOL_VAL")
         @self.pg.production("expression : CHAR_VAL")
+        @self.pg.production("expression : STRING_VAL")
         def number(p):
             if p[0].gettokentype() == "INT_VAL":
                 return Integer(self.state, p[0].value)
             elif p[0].gettokentype() == "FLOAT_VAL":
                 return Double(self.state, p[0].value)
+            elif p[0].gettokentype() == "BOOL_VAL":
+                return Boolean(self.state, p[0].getstr())
             elif p[0].gettokentype() == "CHAR_VAL":
                 return Character(self.state, p[0].getstr())
             elif p[0].gettokentype() == "STRING_VAL":

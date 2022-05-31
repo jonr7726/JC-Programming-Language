@@ -56,6 +56,12 @@ class Double(Literal):
     def __init__(self, state, value):
         super().__init__(state, float(value), self.TYPE)
 
+class Boolean(Literal):
+	TYPE = ir.IntType(1)
+
+	def __init__(self, state, value):
+		super().__init__(state, (1 if str(value) == "true" else 0), self.TYPE)
+
 class Character(Literal):
 	TYPE = ir.IntType(8)
 
@@ -72,13 +78,19 @@ class String(Literal):
 		# Make constant character array
 		value = ir.Constant(ir.ArrayType(Character.TYPE, len(self.value)), self.value)
 
+		# Check if string literal already exists
+		for var in self.state.module.global_values:
+			if isinstance(var, ir.GlobalVariable):
+				if var.initializer == value:
+					return self.state.builder.bitcast(var, String.TYPE)
+
 		# Make global variable of string literal
-		global_fmt = ir.GlobalVariable(self.module, value.type, name=self.module.get_unique_name("string"))
-		global_fmt.linkage = "private"
-		global_fmt.global_constant = True
-		global_fmt.unnamed_addr = True
-		global_fmt.initializer = value
+		literal = ir.GlobalVariable(self.state.module, value.type, name=self.state.module.get_unique_name("str"))
+		literal.linkage = "private"
+		literal.global_constant = True
+		literal.unnamed_addr = True
+		literal.initializer = value
 
 		# Convert pointer to character array to character pointer
-		return self.builder.bitcast(global_fmt, String.TYPE)
-		#return self.builder.gep(global_fmt, , inbounds=True)
+		return self.state.builder.bitcast(literal, String.TYPE)
+		#return self.state.builder.gep(literal, , inbounds=True)

@@ -7,6 +7,8 @@ __pycache__/
 # Testing files
 testing/*
 sample
+test.c
+*.jc
 
 # Compiled program
 main

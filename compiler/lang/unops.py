@@ -5,8 +5,8 @@ from .literals import Integer, Double
 from .variables import Variable
 
 class UnaryOp(Base):
-	def __init__(self, state, expression, **kwargs):
-		super().__init__(state, kwargs)
+	def __init__(self, state, expression, type=None):
+		super().__init__(state, type)
 		self.__expression = expression
 
 	def eval(self):
@@ -24,26 +24,34 @@ class Cast(UnaryOp):
 		if isinstance(self.type, ir.IntType):
 			if isinstance(exp_val.type, ir.FloatType):
 				# Floating point to integer
-				return self.builder.fptosi(exp_val, self.type)
+				return self.state.builder.fptosi(exp_val, self.type)
+
+			elif isinstance(exp_val.type, ir.PointerType):
+				# Pointer to integer
+				return self.state.builder.ptrtoint(exp_val, self.type)
 
 		elif isinstance(self.type, ir.FloatType):
 			if isinstance(exp_val.type, ir.IntType):
 				# Integer to floating point
-				return self.builder.sitofp(exp_val, self.type)
+				return self.state.builder.sitofp(exp_val, self.type)
 
 		elif isinstance(self.type, ir.PointerType):
 			if isinstance(exp_val.type, ir.ArrayType):
 				# Array to pointer
 				if exp_val.type.element == self.type.pointee:
-					return self.builder.bitcast(exp_val, self.type)
-		
+					return self.state.builder.bitcast(exp_val, self.type)
+
+			elif isinstance(exp_val.type, ir.IntType):
+				# Integer to pointer
+				return self.state.builder.inttoptr(exp_val, self.type)
+
 		raise Exception("Error cannot cast type %s to type %s " % exp_val.type, self.type)
 
 class Negate(UnaryOp):
 	def eval_op(self, exp_val):
 		if isinstance(exp_val.type, (ir.IntType, ir.FloatType)):
 			self.type = exp_val.type
-			return self.builder.neg(exp_val)
+			return self.state.builder.neg(exp_val)
 		
 		raise Exception("Error cannot negate type %s" % exp_val.type)
 
@@ -51,7 +59,7 @@ class Derefrence(UnaryOp):
 	"""
 	def eval(self, env):
 		if isinstance(self.expression, Variable):
-			return self.builder.bitcast(self.expression.get_pointer(env), self.get_type(env))
+			return self.state.builder.bitcast(self.expression.get_pointer(env), self.get_type(env))
 		else:
 			raise Exception("TODO implement this properly")
 

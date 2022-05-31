@@ -1,7 +1,2 @@
-char* s;
-s = "%d\n";
+bool a = true;
 
-int a;
-a = 4;
-
-printf(s, a);

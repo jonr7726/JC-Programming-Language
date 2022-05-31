@@ -33,17 +33,27 @@ class Lexer():
 
         self.lexer.add("EQUALS", r"\=")
         # Value literals
-        self.lexer.add("FLOAT_VAL", r"\d*\.\d+")
         self.lexer.add("INT_VAL", r"\d+")
-        self.lexer.add("STRING_VAL", r"\".*\"")
+        self.lexer.add("FLOAT_VAL", r"\d*\.\d+")
+        self.lexer.add("BOOL_VAL", r"true|false")
         self.lexer.add("CHAR_VAL", r"\'\\?.\'")
+        self.lexer.add("STRING_VAL", r"\".*\"")
         # Data types
+        self.lexer.add("SHORT", r"short")
         self.lexer.add("INT", r"int")
         self.lexer.add("LONG", r"long")
-        self.lexer.add("DOUBLE", r"double")
         self.lexer.add("FLOAT", r"float")
+        self.lexer.add("DOUBLE", r"double")
+        self.lexer.add("BOOL", r"bool")
         self.lexer.add("CHAR", r"char")
         self.lexer.add("STRING", r"string")
+        # Key words
+        self.lexer.add("IF", r"if")
+        self.lexer.add("ELSE", r"else")
+        self.lexer.add("WHILE", r"while")
+        self.lexer.add("REPEAT", r"repeat")
+        self.lexer.add("UNTIL", r"until")
+        self.lexer.add("FOR", r"for")
         # Identifiers
         self.lexer.add("IDENTIFIER", r"\w+")
         # Ignore spaces

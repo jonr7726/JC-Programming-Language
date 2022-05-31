@@ -35,18 +35,18 @@ class CodeGen():
 
     def _declare_functions(self):
         self.functions = {}
-        self._declare_print_function()
-        self._declare_malloc_function()
 
-    def _declare_print_function(self):
         # Declare Printf function
         printf_ty = ir.FunctionType(Integer.TYPE, [String.TYPE], var_arg=True)
         self.functions["printf"] = ir.Function(self.module, printf_ty, name="printf")
 
-    def _declare_malloc_function(self):
         # Declare Malloc function
         malloc_ty = ir.FunctionType(String.TYPE, [Integer.TYPE], var_arg=True)
         self.functions["malloc"] = ir.Function(self.module, malloc_ty, name="malloc")
+
+        # Declare Realloc function
+        realloc_ty = ir.FunctionType(String.TYPE, [String.TYPE, Integer.TYPE], var_arg=True)
+        self.functions["realloc"] = ir.Function(self.module, realloc_ty, name="realloc")
 
     def _compile_ir(self):
         """

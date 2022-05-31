@@ -19,9 +19,8 @@ class Function(Base):
     def __init__(self, state, function, arguments):
         super().__init__(state)
         self.arguments = arguments
-        self.function = self.functions[function]
+        self.function = self.state.functions[function]
         self.type = self.function.return_value.type
 
     def eval(self):
-        args = self.arguments.eval()
-        return self.builder.call(self.function, self.args.eval())
+        return self.state.builder.call(self.function, self.arguments.eval())
