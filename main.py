@@ -203,7 +203,7 @@ codegen.save_ir(out_file + ".ll")
 # Compile to object code
 res =  subprocess.call("llc -filetype=obj %s.ll" % out_file, shell = True)
 if res != 0:
-    raise Error("Error compiling IR: %s" % res)
+    raise JError("Error compiling IR: %s" % res)
 
 # Delete IR file
 if options["ir"].val == False:
@@ -212,7 +212,7 @@ if options["ir"].val == False:
 # Compile to machine code
 res = subprocess.call("gcc %s.o -o %s -no-pie" % (out_file, out_file), shell = True)
 if res != 0:
-    raise Error("Error compiling IR: %s" % res)
+    raise JError("Error compiling IR: %s" % res)
 
 # Run code and delete output file
 if options["interpret"].val == True:

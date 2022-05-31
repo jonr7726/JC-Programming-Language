@@ -1,5 +1,6 @@
 from rply import ParserGenerator
 from llvmlite import ir
+from .lang import Pass
 from .lang.literals import *
 from .lang.variables import *
 from .lang.unops import *
@@ -18,6 +19,8 @@ class Parser():
 
                 "OPEN_BRAC",
                 "CLOSE_BRAC",
+                "OPEN_CURL",
+                "CLOSE_CURL",
                 "OPEN_SQUARE",
                 "CLOSE_SQUARE",
 
@@ -31,6 +34,8 @@ class Parser():
                 "SLASH",
                 "AMPERSAND",
 
+                "COMPARISON",
+
                 "EQUALS",
 
                 "INT",
@@ -43,6 +48,14 @@ class Parser():
                 "BOOL_VAL",
                 "CHAR_VAL",
                 "STRING_VAL",
+
+                "IF",
+                "ELSE",
+                "WHILE",
+                "DO",
+                "REPEAT",
+                "UNTIL",
+                "FOR",
 
                 "IDENTIFIER",
             ],
@@ -62,14 +75,44 @@ class Parser():
             self.variables = variables
 
     def parse(self):
-        @self.pg.production("program : statement SEMICOLON")
-        def single_statement(p):
-            return Program(self.state, p[0])
+        @self.pg.production("sequence : block")
+        @self.pg.production("sequence : statement SEMICOLON")
+        def sequence(p):
+            return Sequence(self.state, p[0])
 
-        @self.pg.production("program : statement SEMICOLON program")
-        def multi_statement(p):
+        @self.pg.production("sequence : block sequence")
+        def block(p):
+            p[1].add_statement(p[0])
+            return p[1]
+
+        @self.pg.production("sequence : statement SEMICOLON sequence")
+        def statement(p):
             p[2].add_statement(p[0])
             return p[2]
+
+        @self.pg.production("block : IF OPEN_BRAC expression CLOSE_BRAC OPEN_CURL sequence CLOSE_CURL")
+        def if_then(p):
+            return IfThen(self.state, p[2], p[5])
+
+        @self.pg.production("block : IF OPEN_BRAC expression CLOSE_BRAC OPEN_CURL sequence CLOSE_CURL ELSE OPEN_CURL sequence CLOSE_CURL")
+        def if_else(p):
+            return IfElse(self.state, p[2], p[5], p[9])
+
+        @self.pg.production("block : WHILE OPEN_BRAC expression CLOSE_BRAC OPEN_CURL sequence CLOSE_CURL")
+        def pre_test(p):
+            return PreTest(self.state, p[2], p[5])
+
+        @self.pg.production("block : REPEAT OPEN_CURL sequence CLOSE_CURL UNTIL OPEN_BRAC expression CLOSE_BRAC SEMICOLON")
+        def post_test(p):
+            return PostUntil(self.state, p[6], p[2])
+
+        @self.pg.production("block : DO OPEN_CURL sequence CLOSE_CURL WHILE OPEN_BRAC expression CLOSE_BRAC SEMICOLON")
+        def post_test(p):
+            return PostWhile(self.state, p[6], p[2])
+
+        @self.pg.production("block : FOR OPEN_BRAC statement SEMICOLON statement SEMICOLON statement CLOSE_BRAC OPEN_CURL sequence CLOSE_CURL")
+        def for_loop(p):
+            return ForLoop(self.state, p[2], p[4], p[6], p[9])
 
         @self.pg.production("statement : type IDENTIFIER")
         def variable_declaration(p):
@@ -86,6 +129,10 @@ class Parser():
         @self.pg.production("statement : expression")
         def expression(p):
             return p[0]
+
+        @self.pg.production("statement : ")
+        def expression(p):
+            return Pass()
 
         @self.pg.production("argument : expression COMMA argument")
         def arguments(p):
@@ -153,6 +200,7 @@ class Parser():
         @self.pg.production("expression : expression SLASH expression")
         @self.pg.production("expression : expression PLUS expression")
         @self.pg.production("expression : expression MINUS expression")
+        @self.pg.production("expression : expression COMPARISON expression")
         def binops(p):
             left = p[0]
             right = p[2]
@@ -165,6 +213,8 @@ class Parser():
                 return Addition(self.state, p[0], p[2])
             elif p[1].gettokentype() == "MINUS":
                 return Subtraction(self.state, p[0], p[2])
+            elif p[1].gettokentype() == "COMPARISON":
+                return Comparison(self.state, p[1].getstr(), p[0], p[2])
 
         @self.pg.production("expression : MINUS expression")
         @self.pg.production("expression : STAR expression")

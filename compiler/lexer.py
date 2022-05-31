@@ -31,7 +31,10 @@ class Lexer():
         self.lexer.add("SLASH", r"\/")
         self.lexer.add("AMPERSAND", r"\&")
 
+        self.lexer.add("COMPARISON", r"\=\=|\!\=|\<|\>|\<\=|\>\=")
+
         self.lexer.add("EQUALS", r"\=")
+
         # Value literals
         self.lexer.add("INT_VAL", r"\d+")
         self.lexer.add("FLOAT_VAL", r"\d*\.\d+")
@@ -51,6 +54,7 @@ class Lexer():
         self.lexer.add("IF", r"if")
         self.lexer.add("ELSE", r"else")
         self.lexer.add("WHILE", r"while")
+        self.lexer.add("DO", r"do")
         self.lexer.add("REPEAT", r"repeat")
         self.lexer.add("UNTIL", r"until")
         self.lexer.add("FOR", r"for")

@@ -90,3 +90,18 @@ class Division(BinaryOp):
 			return self.state.builder.fdiv(left_val, right_val)
 
 		raise Exception("Cannot perform division on types %s and %s" % (left_val.type, right_val.type))
+
+class Comparison(BinaryOp):
+	def __init__(self, state, op, left, right):
+		super().__init__(state, left, right)
+		self.op = str(op)
+
+	def eval_op(self, left_val, right_val):
+		if isinstance(self.type, ir.IntType):
+			# Integer division
+			return self.state.builder.icmp_signed(self.op, left_val, right_val)
+		elif isinstance(self.type, ir.FloatType):
+			# Floating point division
+			return self.state.builder.fcmp_unordered(self.op, left_val, right_val)
+
+		raise Exception("Cannot perform comparison on types %s and %s" % (left_val.type, right_val.type))

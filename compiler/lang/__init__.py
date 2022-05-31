@@ -10,3 +10,10 @@ class Base(BaseBox):
 	def eval():
 		pass
 		# After eval run, self.type must be initialized
+
+class Pass(Base):
+	def __init__(self):
+		super().__init__(None, None)
+
+	def eval():
+		pass
