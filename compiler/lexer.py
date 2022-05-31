@@ -6,11 +6,20 @@ class Lexer():
         self.lexer = LexerGenerator()
 
     def _add_tokens(self):
-        # Print
-        self.lexer.add("PRINT", r"print")
+        # Ignore comments
+        self.lexer.ignore(r"\/\/.*\n")
+        # Functions
+        self.lexer.add("PRINT", r"printf")
+        self.lexer.add("MALLOC", r"malloc")
+        self.lexer.add("REALLOC", r"realloc")
+        self.lexer.add("FREE", r"free")
         # Parenthesis
         self.lexer.add("OPEN_BRAC", r"\(")
         self.lexer.add("CLOSE_BRAC", r"\)")
+        self.lexer.add("OPEN_CURL", r"\{")
+        self.lexer.add("CLOSE_CURL", r"\}")
+        self.lexer.add("OPEN_SQUARE", r"\[")
+        self.lexer.add("CLOSE_SQUARE", r"\]")
         # Comma
         self.lexer.add("COMMA", r"\,")
         # Semi Colon
@@ -20,17 +29,21 @@ class Lexer():
         self.lexer.add("MINUS", r"\-")
         self.lexer.add("STAR", r"\*")
         self.lexer.add("SLASH", r"\/")
+        self.lexer.add("AMPERSAND", r"\&")
 
         self.lexer.add("EQUALS", r"\=")
         # Value literals
         self.lexer.add("FLOAT_VAL", r"\d*\.\d+")
         self.lexer.add("INT_VAL", r"\d+")
         self.lexer.add("STRING_VAL", r"\".*\"")
+        self.lexer.add("CHAR_VAL", r"\'\\?.\'")
         # Data types
         self.lexer.add("INT", r"int")
         self.lexer.add("LONG", r"long")
         self.lexer.add("DOUBLE", r"double")
         self.lexer.add("FLOAT", r"float")
+        self.lexer.add("CHAR", r"char")
+        self.lexer.add("STRING", r"string")
         # Identifiers
         self.lexer.add("IDENTIFIER", r"\w+")
         # Ignore spaces

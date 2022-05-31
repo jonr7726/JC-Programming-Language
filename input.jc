@@ -1,7 +1,7 @@
-print("Hello World!\n");
+char* s;
+s = "%d\n";
 
-double f = 7;
-double a = 1 + f / 2;
-double b = (1 + f) / 2;
-print("%f %f\n", a, b);
-print("%d %d\n", (int) a, (int) b);
+int a;
+a = 4;
+
+printf(s, a);

@@ -191,10 +191,10 @@ codegen = compiler.CodeGen()
 
 module = codegen.module
 builder = codegen.builder
-printf = codegen.printf
+functions = codegen.functions
 
 # Parse tokens
-pg = compiler.Parser(module, builder, printf)
+pg = compiler.Parser(module, builder, functions)
 pg.parse()
 parser = pg.get_parser()
 

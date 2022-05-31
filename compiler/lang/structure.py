@@ -1,4 +1,4 @@
-from . import ir
+from llvmlite import ir
 
 class Program():
 	def __init__(self, builder, module, statement):

@@ -1,4 +1,4 @@
-from . import ir
+from llvmlite import ir
 from .variables import Declaration, Variable
 from .literals import Integer, Double
 from .unops import IntegerCast, DoubleCast
@@ -20,11 +20,22 @@ class BinaryOp():
 		return (Double.TYPE in [self.left.get_type(env), self.right.get_type(env)] and
 			Integer.TYPE in [self.left.get_type(env), self.right.get_type(env)])
 
+	def is_int_pointer(self, env):
+		return (isinstance(self.left.get_type(env), ir.PointerType) or
+			isinstance(self.right.get_type(env), ir.PointerType)
+			) and Integer.TYPE in [self.left.get_type(env), self.right.get_type(env)]
+
 	def to_double(self, env):
 		if self.left.get_type(env) == Integer.TYPE:
 			return self.builder.sitofp(self.left.eval(env), Double.TYPE), self.right.eval(env)
 		else:
 			return self.left.eval(env), self.builder.sitofp(self.right.eval(env), Double.TYPE)
+
+	def to_int(self, env):
+		if isinstance(self.left.get_type(env), ir.PointerType):
+			return self.left.get_type(env), self.builder.ptrtoint(self.left.eval(env), Integer.TYPE), self.right.eval(env)
+		else:
+			return self.right.get_type(env), self.left.eval(env), self.builder.ptrtoint(self.right.eval(env), Integer.TYPE)
 
 	def get_type(self, env):
 		if self.left.get_type(env) == self.right.get_type(env):
@@ -44,6 +55,10 @@ class Addition(BinaryOp):
 		elif self.is_int_double(env):
 			lhs, rhs = self.to_double(env)
 			return self.builder.fadd(lhs, rhs)
+		elif self.is_int_pointer(env):
+			return self.builder.atomic_rmw("add", self.left.eval(env), self.right.eval(env), "acquire")
+			type, lhs, rhs = self.to_int(env)
+			return self.builder.inttoptr(self.builder.add(lhs, rhs), type)
 		else:
 			raise Exception("Cannot perform addition on types %s and %s" % (self.left.get_type(env), self.right.get_type(env)))
 
