@@ -1,18 +1,13 @@
+from . import Base
 from llvmlite import ir
 
-class Program():
-	def __init__(self, builder, module, statement):
-		self.builder = builder
-		self.module = module
+class Program(Base):
+	def __init__(self, state, statement):
+		super().__init__(state, type=None)
 		self.statements = [statement]
 
 	def add_statement(self, statement):
 		self.statements.insert(0, statement)
 
-	def eval(self, env):
-		result = None
-
-		for statement in self.statements:
-			result = statement.eval(env)
-
-		return result
+	def eval(self):
+		return [statement.eval() for statement in self.statements]

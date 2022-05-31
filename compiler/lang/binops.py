@@ -1,114 +1,82 @@
+from . import Base
+from abc import abstractmethod
 from llvmlite import ir
 from .variables import Declaration, Variable
 from .literals import Integer, Double
-from .unops import IntegerCast, DoubleCast
+from .unops import Cast
 
-class BinaryOp():
-	def __init__(self, builder, module, left, right):
-		self.builder = builder
-		self.module = module
-		self.left = left
-		self.right = right
+class BinaryOp(Base):
+	def __init__(self, state, left, right):
+		super().__init__(state)
+		self.__left = left
+		self.__right = right
 
-	def is_doubles(self, env):
-		return (self.left.get_type(env) == Double.TYPE and self.right.get_type(env) == Double.TYPE)
+	@abstractmethod
+	def eval_op(self, left_val, right_val):
+		pass
 
-	def is_ints(self, env):
-		return (self.left.get_type(env) == Integer.TYPE and self.right.get_type(env) == Integer.TYPE)
+	def eval(self):
+		left_val, right_val = self._implicit_cast(__left.eval(), __right.eval())
+		self._set_type(left_val, right_val)
+		return self.eval_op(left_val, right_val)
 
-	def is_int_double(self, env):
-		return (Double.TYPE in [self.left.get_type(env), self.right.get_type(env)] and
-			Integer.TYPE in [self.left.get_type(env), self.right.get_type(env)])
+	@staticmethod
+	def _implicit_cast(left_val, right_val):
+		if isinstance(left_val.type, ir.IntType) and isinstance(right_val.type, ir.FloatType):
+			# Cast left to floating point
+			left_val = Cast(left_val, right_val.type).eval()
+		elif isinstance(left_val.type, ir.FloatType) and isinstance(right_val.type, ir.IntType):
+			# Cast right to floating point
+			right_val = Cast(right_val, left_val.type).eval()
 
-	def is_int_pointer(self, env):
-		return (isinstance(self.left.get_type(env), ir.PointerType) or
-			isinstance(self.right.get_type(env), ir.PointerType)
-			) and Integer.TYPE in [self.left.get_type(env), self.right.get_type(env)]
+		return left_val, right_val
 
-	def to_double(self, env):
-		if self.left.get_type(env) == Integer.TYPE:
-			return self.builder.sitofp(self.left.eval(env), Double.TYPE), self.right.eval(env)
+	def _set_type(left_val, right_val):
+		if left_val.type == right_val.type:
+			self.type = left_val.type
 		else:
-			return self.left.eval(env), self.builder.sitofp(self.right.eval(env), Double.TYPE)
-
-	def to_int(self, env):
-		if isinstance(self.left.get_type(env), ir.PointerType):
-			return self.left.get_type(env), self.builder.ptrtoint(self.left.eval(env), Integer.TYPE), self.right.eval(env)
-		else:
-			return self.right.get_type(env), self.left.eval(env), self.builder.ptrtoint(self.right.eval(env), Integer.TYPE)
-
-	def get_type(self, env):
-		if self.left.get_type(env) == self.right.get_type(env):
-			return self.left.get_type(env)
-		elif self.is_int_double(env):
-			return Double.TYPE
-		else:
-			return [self.left.get_type(env), self.right.get_type(env)]
-
+			self.type = None
 
 class Addition(BinaryOp):
-	def eval(self, env):
-		if self.is_ints(env):
-			return self.builder.add(self.left.eval(env), self.right.eval(env))
-		elif self.is_doubles(env):
-			return self.builder.fadd(self.left.eval(env), self.right.eval(env))
-		elif self.is_int_double(env):
-			lhs, rhs = self.to_double(env)
-			return self.builder.fadd(lhs, rhs)
-		elif self.is_int_pointer(env):
-			return self.builder.atomic_rmw("add", self.left.eval(env), self.right.eval(env), "acquire")
-			type, lhs, rhs = self.to_int(env)
-			return self.builder.inttoptr(self.builder.add(lhs, rhs), type)
-		else:
-			raise Exception("Cannot perform addition on types %s and %s" % (self.left.get_type(env), self.right.get_type(env)))
+	def eval_op(self, left_val, right_val):
+		if isinstance(self.type, ir.IntType):
+			# Integer addition
+			return self.builder.add(left_val, right_val)
+		elif isinstance(self.type, ir.FloatType):
+			# Floating point addition
+			return self.builder.fadd(left_val, right_val)
 
+		raise Exception("Cannot perform addition on types %s and %s" % (left_val.type, right_val.type))
 
 class Subtraction(BinaryOp):
-	def eval(self, env):
-		if self.is_ints(env):
-			return self.builder.sub(self.left.eval(env), self.right.eval(env))
-		elif self.is_doubles(env):
-			return self.builder.fsub(self.left.eval(env), self.right.eval(env))
-		elif self.is_int_double(env):
-			lhs, rhs = self.to_double(env)
-			return self.builder.fsub(lhs, rhs)
-		else:
-			raise Exception("Cannot perform subtraction on types %s and %s" % (self.left.get_type(env), self.right.get_type(env)))
+	def eval_op(self, left_val, right_val):
+		if isinstance(self.type, ir.IntType):
+			# Integer subtraction
+			return self.builder.sub(left_val, right_val)
+		elif isinstance(self.type, ir.FloatType):
+			# Floating point subtraction
+			return self.builder.fsub(left_val, right_val)
+
+		raise Exception("Cannot perform subtraction on types %s and %s" % (left_val.type, right_val.type))
 
 class Multiplication(BinaryOp):
-	def eval(self, env):
-		if self.is_ints(env):
-			return self.builder.mul(self.left.eval(env), self.right.eval(env))
-		elif self.is_doubles(env):
-			return self.builder.fmul(self.left.eval(env), self.right.eval(env))
-		elif self.is_int_double(env):
-			lhs, rhs = self.to_double(env)
-			return self.builder.fmul(lhs, rhs)
-		else:
-			raise Exception("Cannot perform multiplication on types %s and %s" % (self.left.get_type(env), self.right.get_type(env)))
+	def eval_op(self, left_val, right_val):
+		if isinstance(self.type, ir.IntType):
+			# Integer multiplication
+			return self.builder.sub(left_val, right_val)
+		elif isinstance(self.type, ir.FloatType):
+			# Floating point multiplication
+			return self.builder.fsub(left_val, right_val)
+
+		raise Exception("Cannot perform multiplication on types %s and %s" % (left_val.type, right_val.type))
 
 class Division(BinaryOp):
-	def eval(self, env):
-		if self.is_ints(env):
-			return self.builder.sdiv(self.left.eval(env), self.right.eval(env))
-		elif self.is_doubles(env):
-			return self.builder.fdiv(self.left.eval(env), self.right.eval(env))
-		elif self.is_int_double(env):
-			lhs, rhs = self.to_double(env)
-			return self.builder.fdiv(lhs, rhs)
-		else:
-			raise Exception("Cannot perform division on types %s and %s" % (self.left.get_type(env), self.right.get_type(env)))
+	def eval_op(self, left_val, right_val):
+		if isinstance(self.type, ir.IntType):
+			# Integer division
+			return self.builder.sdiv(left_val, right_val)
+		elif isinstance(self.type, ir.FloatType):
+			# Floating point division
+			return self.builder.fdiv(left_val, right_val)
 
-class Assignment(BinaryOp):
-	def eval(self, env):
-		if isinstance(self.left, Declaration):
-			self.left.eval(env)
-			self.left = Variable(self.builder, self.module, self.left.name)
-
-		if self.left.get_type(env) == self.right.get_type(env):
-			self.builder.store(self.right.eval(env), self.left.get_pointer(env))
-		elif self.left.get_type(env) == Double.TYPE and self.right.get_type(env) == Integer.TYPE:
-			# Can't use is_doubles as this only works if assigning to a double
-			self.builder.store(self.builder.sitofp(self.right.eval(env), Double.TYPE), self.left.get_pointer(env))
-		else:
-			raise Exception("Cannot perform assignment an %s and %s" % (self.left.get_type(env), self.right.get_type(env)))
+		raise Exception("Cannot perform division on types %s and %s" % (left_val.type, right_val.type))

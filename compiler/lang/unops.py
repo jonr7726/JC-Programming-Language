@@ -1,60 +1,51 @@
+from . import Base
+from abc import abstractmethod
 from llvmlite import ir
 from .literals import Integer, Double
 from .variables import Variable
 
-class UnaryOp():
-	def __init__(self, builder, module, expression):
-		self.builder = builder
-		self.module = module
-		self.expression = expression
+class UnaryOp(Base):
+	def __init__(self, state, expression, **kwargs):
+		super().__init__(state, kwargs)
+		self.__expression = expression
 
-	def get_type(self, env):
-		return self.expression.get_type(env)
+	def eval(self):
+		return self.eval_op(self.__expression.eval())
 
-class IntegerCast(UnaryOp):
-	def eval(self, env):
-		if self.expression.get_type(env) == Double.TYPE:
-			return self.builder.fptosi(self.expression.eval(env), Integer.TYPE)
-		else:
-			raise Exception("Error cannot convert type %s to integer" % self.expression.get_type(env))
+	@abstractmethod
+	def eval_op(self, exp_val):
+		pass
 
-	def get_type(self, env):
-		return Integer.TYPE
+class Cast(UnaryOp):
+	def __init__(self, state, expression, type):
+		super().__init__(state, expression, type=type)
 
-class DoubleCast(UnaryOp):
-	def eval(self, env):
-		if self.expression.get_type(env) == Integer.TYPE:
-			return self.builder.sitofp(self.expression.eval(env), Double.TYPE)
-		else:
-			raise Exception("Error cannot convert type %s to double" % self.expression.get_type(env))
+	def eval_op(self, exp_val):
+		if isinstance(self.type, ir.IntType):
+			if isinstance(exp_val.type, ir.FloatType):
+				# Floating point to integer
+				return self.builder.fptosi(exp_val, self.type)
 
-	def get_type(self, env):
-		return Double.TYPE
+		elif isinstance(self.type, ir.FloatType):
+			if isinstance(exp_val.type, ir.IntType):
+				# Integer to floating point
+				return self.builder.sitofp(exp_val, self.type)
 
-class ArrayToPointer(UnaryOp):
-	def eval(self, env):
-		return self.builder.bitcast(self.expression.get_pointer(env), self.get_type(env))
+		elif isinstance(self.type, ir.PointerType):
+			if isinstance(exp_val.type, ir.ArrayType):
+				# Array to pointer
+				if exp_val.type.element == self.type.pointee:
+					return self.builder.bitcast(exp_val, self.type)
+		
+		raise Exception("Error cannot cast type %s to type %s " % exp_val.type, self.type)
 
-	def get_type(self, env):
-		type = self.expression.get_type(env)
-		if isinstance(type, ir.ArrayType):
-			return type.element.as_pointer()
-		else:
-			raise Exception("Cannot convert type %s to pointer" % type)
-
-class Negative(UnaryOp):
-	def eval(self, env):
-		if self.expression.get_type(env) in [Integer.TYPE, Double.TYPE]:
-			return self.builder.neg(self.expression.eval(env))
-		else:
-			raise Exception("Error cannot make type %s negative" % self.expression.get_type(env))
-
-class ToPointer(UnaryOp):
-	def eval(self, env):
-		return self.builder.bitcast(self.expression.eval(env), self.get_type(env))
-
-	def get_type(self, env):
-		return self.expression.get_type(env).as_pointer()
+class Negate(UnaryOp):
+	def eval_op(self, exp_val):
+		if isinstance(exp_val.type, (ir.IntType, ir.FloatType)):
+			self.type = exp_val.type
+			return self.builder.neg(exp_val)
+		
+		raise Exception("Error cannot negate type %s" % exp_val.type)
 
 class Derefrence(UnaryOp):
 	"""

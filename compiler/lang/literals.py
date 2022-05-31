@@ -1,3 +1,4 @@
+from . import Base
 from llvmlite import ir
 
 def sanatize(string):
@@ -35,44 +36,39 @@ def sanatize_string(string):
 
 	return sanatize(string)
 
-class Literal():
-	def __init__(self, builder, module, value, type):
-		self.builder = builder
-		self.module = module
+class Literal(Base):
+	def __init__(self, state, value, type):
+		super().__init__(state, type=type)
 		self.value = value
-		self.type = type
 
-	def get_type(self, env):
-		return self.type
-
-	def eval(self, env):
+	def eval(self):
 		return ir.Constant(self.type, self.value)
 
 class Integer(Literal):
     TYPE = ir.IntType(32)
 
-    def __init__(self, builder, module, value):
-        super().__init__(builder, module, int(value), self.TYPE)
+    def __init__(self, state, value):
+        super().__init__(state, int(value), self.TYPE)
 
 class Double(Literal):
     TYPE = ir.DoubleType()
 
-    def __init__(self, builder, module, value):
-        super().__init__(builder, module, float(value), self.TYPE)
+    def __init__(self, state, value):
+        super().__init__(state, float(value), self.TYPE)
 
 class Character(Literal):
 	TYPE = ir.IntType(8)
 
-	def __init__(self, builder, module, value):
-		super().__init__(builder, module, sanatize_char(value), self.TYPE)
+	def __init__(self, state, value):
+		super().__init__(state, sanatize_char(value), self.TYPE)
 
 class String(Literal):
 	TYPE = Character.TYPE.as_pointer()
 
-	def __init__(self, builder, module, value):
-		super().__init__(builder, module, sanatize_string(value), self.TYPE)
+	def __init__(self, state, value):
+		super().__init__(state, sanatize_string(value), self.TYPE)
 
-	def eval(self, env):
+	def eval(self):
 		# Make constant character array
 		value = ir.Constant(ir.ArrayType(Character.TYPE, len(self.value)), self.value)
 

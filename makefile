@@ -2,10 +2,10 @@ INPUT = input.jc
 OUTPUT = output
 
 all:
-	python main.py -ir $(INPUT) -o $(OUTPUT)
+	python3 main.py -ir $(INPUT) -o $(OUTPUT)
 
 interpret:
-	python main.py -ir $(INPUT) -o $(OUTPUT) -i
+	python3 main.py -ir $(INPUT) -o $(OUTPUT) -i
 
 ir:
 	llc -filetype=obj $(OUTPUT).ll

@@ -1,7 +1,7 @@
 import sys
 import subprocess
 import compiler
-from compiler.error import Error
+from compiler.error import JError
 
 EXTENSION = "jc"
 
@@ -75,7 +75,7 @@ options = {
 def is_option(arg):
     return arg[0] == "-"
 
-class UserError(Error):
+class UserError(JError):
     def __init__(self, message):
         super().__init__("%s; use '-%s' for help" %
             (message, options["help"].args[0]))
@@ -189,18 +189,12 @@ tokens = lexer.lex(text_input)
 # Initialise IR code generation
 codegen = compiler.CodeGen()
 
-module = codegen.module
-builder = codegen.builder
-functions = codegen.functions
-
 # Parse tokens
-pg = compiler.Parser(module, builder, functions)
+pg = compiler.Parser(codegen.module, codegen.builder, codegen.functions)
 pg.parse()
 parser = pg.get_parser()
 
-state = compiler.ParserState()
-
-parser.parse(tokens, state).eval(state)
+parser.parse(tokens).eval()
 
 # Compile to IR
 codegen.create_ir()
