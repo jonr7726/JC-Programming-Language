@@ -1,8 +1,8 @@
-from . import Base
+from ..base import Base
 from abc import abstractmethod
 from llvmlite import ir
-from .literals import Integer, Double
-from .variables import Variable
+from ..literals import Integer, Double
+from ..variables import Variable
 
 class UnaryOp(Base):
 	def __init__(self, state, expression, type=None):

@@ -48,7 +48,7 @@ class CodeGen():
         realloc_ty = ir.FunctionType(String.TYPE, [String.TYPE, Integer.TYPE], var_arg=True)
         self.functions["realloc"] = ir.Function(self.module, realloc_ty, name="realloc")
 
-    def _compile_ir(self):
+    def _compile_ir(self, debug):
         """
         Compile the LLVM IR string with the given engine.
         The compiled module object is returned.
@@ -56,6 +56,7 @@ class CodeGen():
         # Create a LLVM module object from the IR
         self.builder.ret_void()
         llvm_ir = str(self.module)
+        if debug: print(llvm_ir)
         mod = self.binding.parse_assembly(llvm_ir)
         mod.verify()
         # Now add the module and make sure it is ready for execution
@@ -64,8 +65,8 @@ class CodeGen():
         self.engine.run_static_constructors()
         return mod
 
-    def create_ir(self):
-        self._compile_ir()
+    def create_ir(self, debug=False):
+        self._compile_ir(debug)
 
     def save_ir(self, filename):
         with open(filename, 'w') as output_file:

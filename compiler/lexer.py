@@ -8,6 +8,7 @@ class Lexer():
     def _add_tokens(self):
         # Ignore comments
         self.lexer.ignore(r"\/\/.*\n")
+        self.lexer.ignore(r"\/\*(?:(?!\*\/)[\s\S])*\*\/")
         # Functions
         self.lexer.add("PRINT", r"printf")
         self.lexer.add("MALLOC", r"malloc")
@@ -20,9 +21,9 @@ class Lexer():
         self.lexer.add("CLOSE_CURL", r"\}")
         self.lexer.add("OPEN_SQUARE", r"\[")
         self.lexer.add("CLOSE_SQUARE", r"\]")
-        # Comma
+        # Misc
         self.lexer.add("COMMA", r"\,")
-        # Semi Colon
+        self.lexer.add("COLON", r"\:")
         self.lexer.add("SEMICOLON", r"\;")
         # Operators
         self.lexer.add("PLUS", r"\+")
@@ -53,11 +54,18 @@ class Lexer():
         # Key words
         self.lexer.add("IF", r"if")
         self.lexer.add("ELSE", r"else")
+        self.lexer.add("SWITCH", r"switch")
+        self.lexer.add("CASE", r"case")
+        self.lexer.add("DEFAULT", r"default")
         self.lexer.add("WHILE", r"while")
         self.lexer.add("DO", r"do")
         self.lexer.add("REPEAT", r"repeat")
         self.lexer.add("UNTIL", r"until")
         self.lexer.add("FOR", r"for")
+
+        self.lexer.add("BREAK", r"break")
+        self.lexer.add("CONTINUE", r"continue")
+        self.lexer.add("RETURN", r"return")
         # Identifiers
         self.lexer.add("IDENTIFIER", r"\w+")
         # Ignore spaces

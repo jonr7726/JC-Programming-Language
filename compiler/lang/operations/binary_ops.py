@@ -1,9 +1,9 @@
-from . import Base
+from ..base import Base
 from abc import abstractmethod
 from llvmlite import ir
-from .variables import Declaration, Variable
-from .literals import Integer, Double
-from .unops import Cast
+from ..variables import Declaration, Variable
+from ..literals import Integer, Double
+from .unary_ops import Cast
 
 class BinaryOp(Base):
 	def __init__(self, state, left, right):
@@ -73,10 +73,10 @@ class Multiplication(BinaryOp):
 	def eval_op(self, left_val, right_val):
 		if isinstance(self.type, ir.IntType):
 			# Integer multiplication
-			return self.state.builder.sub(left_val, right_val)
+			return self.state.builder.mul(left_val, right_val)
 		elif isinstance(self.type, ir.FloatType):
 			# Floating point multiplication
-			return self.state.builder.fsub(left_val, right_val)
+			return self.state.builder.fmul(left_val, right_val)
 
 		raise Exception("Cannot perform multiplication on types %s and %s" % (left_val.type, right_val.type))
 

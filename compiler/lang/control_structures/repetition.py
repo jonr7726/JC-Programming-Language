@@ -1,41 +1,5 @@
-from . import Base
+from ..base import Base
 from abc import abstractmethod
-from llvmlite import ir
-
-class Sequence(Base):
-	def __init__(self, state, statement):
-		super().__init__(state, type=None)
-		self.statements = [statement]
-
-	def add_statement(self, statement):
-		self.statements.insert(0, statement)
-
-	def eval(self):
-		[statement.eval() for statement in self.statements]
-
-class IfThen(Base):
-	def __init__(self, state, condition, then):
-		super().__init__(state, type=None)
-		self.condition = condition
-		self.then = then
-
-	def eval(self):
-		with self.state.builder.if_then(self.condition.eval()) as then:
-		    self.then.eval()
-
-class IfElse(Base):
-	def __init__(self, state, condition, then, otherwise):
-		super().__init__(state, type=None)
-		self.condition = condition
-		self.then = then
-		self.otherwise = otherwise
-
-	def eval(self):
-		with self.state.builder.if_else(self.condition.eval()) as (then, otherwise):
-		    with then:
-		    	self.then.eval()
-		    with otherwise:
-		    	self.otherwise.eval()
 
 class Loop(Base):
 	def __init__(self, state, condition, block):
@@ -49,10 +13,14 @@ class Loop(Base):
 		self.loop_end = None
 
 	def eval(self):
-		# Create jumps
+		# Create block jumps
 		self.loop_head = self.state.builder.append_basic_block()
 		self.loop_body = self.state.builder.append_basic_block()
 		self.loop_end = self.state.builder.append_basic_block()
+
+		# Set loop body and end for break / continues
+		self.state.control.loop_body = self.loop_head
+		self.state.control.end = self.loop_end
 		
 		# Loop start code
 		self.start()
@@ -67,6 +35,11 @@ class Loop(Base):
 
 		# Loop end code
 		self.state.builder.position_at_end(self.loop_end)
+		self.end()
+
+		# Reset block jump locations (for continue and break statements)
+		self.state.control.loop_body = None
+		self.state.control.end = None
 
 	@abstractmethod
 	def start(self):
@@ -78,6 +51,10 @@ class Loop(Base):
 
 	@abstractmethod
 	def body(self):
+		pass
+
+	@abstractmethod
+	def end(self):
 		pass
 
 class PreTest(Loop):
@@ -124,13 +101,16 @@ class PostUntil(Loop):
 
 
 class ForLoop(Loop):
-	def __init__(self, state, initializer, condition, itterator, block):
+	def __init__(self, state, initializer, condition, incrementor, block):
 		super().__init__(state, condition, block)
 		# Extra loop blocks
 		self.initializer = initializer
-		self.itterator = itterator
+		self.incrementor = incrementor
 
 	def start(self):
+		# Set iterator (for continues)
+		self.state.control.loop_incrementor = self.incrementor
+
 		# Initialize, then goto head
 		self.initializer.eval()
 		self.state.builder.branch(self.loop_head)
@@ -140,7 +120,11 @@ class ForLoop(Loop):
 		self.state.builder.cbranch(self.condition.eval(), self.loop_body, self.loop_end)
 
 	def body(self):
-		# Run block, run itterator, then goto head
+		# Run block, run incrementor, then goto head
 		self.block.eval()
-		self.itterator.eval()
+		self.incrementor.eval()
 		self.state.builder.branch(self.loop_head)
+
+	def end(self):
+		# Reset iterator (for continues)
+		self.state.control.loop_incrementor = None

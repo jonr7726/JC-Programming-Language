@@ -1,4 +1,4 @@
-from . import Base
+from .base import Base
 from llvmlite import ir
 
 def sanatize(string):

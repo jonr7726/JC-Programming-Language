@@ -1,5 +1,4 @@
-from . import Base
-from llvmlite import ir
+from .base import Base
 from .literals import Integer, Double, Character, String
 
 class Arguments(Base):

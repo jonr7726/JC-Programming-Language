@@ -1,7 +1,7 @@
 import sys
 import subprocess
 import compiler
-from compiler.error import JError
+from compiler.error import JCError
 
 EXTENSION = "jc"
 
@@ -70,12 +70,16 @@ options = {
         help_message="Set output file (Followed by file name argument)\n" +
             "Output file must have no extension"
     ),
+    "debug": Option(
+        "d",
+        help_message="Debug: prints assembly code before compiles"
+    ),
 }
 
 def is_option(arg):
     return arg[0] == "-"
 
-class UserError(JError):
+class UserError(JCError):
     def __init__(self, message):
         super().__init__("%s; use '-%s' for help" %
             (message, options["help"].args[0]))
@@ -186,24 +190,33 @@ with open(source_file) as f:
 lexer = compiler.Lexer().get_lexer()
 tokens = lexer.lex(text_input)
 
+token_names = [rule.name for rule in lexer.rules]
+
 # Initialise IR code generation
 codegen = compiler.CodeGen()
 
 # Parse tokens
-pg = compiler.Parser(codegen.module, codegen.builder, codegen.functions)
+pg = compiler.Parser(codegen.builder, codegen.functions, token_names)
 pg.parse()
 parser = pg.get_parser()
 
 parser.parse(tokens).eval()
 
+# Print parser warnings
+if options["debug"].val:
+    for warning in parser.lr_table.sr_conflicts:
+        print("Shift/reduce conflict: %s" % str(warning))
+    for warning in parser.lr_table.rr_conflicts:
+        print("Reduce/reduce conflict: %s" % str(warning))
+
 # Compile to IR
-codegen.create_ir()
+codegen.create_ir(options["debug"].val)
 codegen.save_ir(out_file + ".ll")
 
 # Compile to object code
 res =  subprocess.call("llc -filetype=obj %s.ll" % out_file, shell = True)
 if res != 0:
-    raise JError("Error compiling IR: %s" % res)
+    raise JCError("Error compiling IR: %s" % res)
 
 # Delete IR file
 if options["ir"].val == False:
@@ -212,7 +225,7 @@ if options["ir"].val == False:
 # Compile to machine code
 res = subprocess.call("gcc %s.o -o %s -no-pie" % (out_file, out_file), shell = True)
 if res != 0:
-    raise JError("Error compiling IR: %s" % res)
+    raise JCError("Error compiling IR: %s" % res)
 
 # Run code and delete output file
 if options["interpret"].val == True:
