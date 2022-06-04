@@ -35,7 +35,7 @@ class BinarySelection(Base):
 		if not isinstance(self.then.statements[0], Break):
 			self.state.builder.position_at_end(then)
 			self.then.eval()
-			if not isinstance(self.then.statements[0], Continue):
+			if not isinstance(self.then.statements[-1], Continue):
 				self.state.builder.branch(endif)
 
 		# Create otherwise (else) block
@@ -43,7 +43,7 @@ class BinarySelection(Base):
 			if not isinstance(self.otherwise.statements[0], Break):
 				self.state.builder.position_at_end(otherwise)
 				self.otherwise.eval()
-				if not isinstance(self.otherwise.statements[0], Continue):
+				if not isinstance(self.otherwise.statements[-1], Continue):
 					self.state.builder.branch(endif)
 		
 		self.state.builder.position_at_end(endif)

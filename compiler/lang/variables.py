@@ -1,6 +1,7 @@
 from .base import Base
 from llvmlite import ir
 from .literals import Integer, Double, String
+from .operations.unary_ops import Cast
 
 def get_array_type(type, size):
     return ir.ArrayType(type, int(size))
@@ -24,25 +25,18 @@ class Assignment(Base):
 
     def eval(self):
         if isinstance(self.var, Variable):
-            # (Not declaration; variable must not be loaded)
+            # Variable must not be loaded
+            # (If this condition is not met, self.var is
+            # declaration, and load is already set to false)
             self.var.load = False
 
-        var, exp = self._implicit_cast(self.var.eval(), self.expression.eval())
+        var = self.var.eval()
 
-        if var.type.pointee == exp.type:
-            return self.state.builder.store(exp, var)
+        # Cast expression to type of variable
+        exp = Cast(self.state, self.expression, var.type.pointee).eval()
+
+        return self.state.builder.store(exp, var)
             
-        raise Exception("Cannot assign type %s to type %s" % (exp.type, var.type))
-
-    @staticmethod
-    def _implicit_cast(var, exp):
-        if isinstance(var.type.pointee, ir.FloatType) and isinstance(exp.type, ir.IntType):
-            # Cast to double
-            exp = Cast(self.state, exp, var.type.pointee)
-
-        return var, exp
-
-
 class Variable(Base):
     def __init__(self, state, name, indexs, load):
         super().__init__(state)
@@ -56,6 +50,8 @@ class Variable(Base):
     def eval(self):
         # Find var in variables
         var = self._get_var()
+        print("")
+        print(var)
 
         # Get register pointer to variable
         var = self._get_pointer(var)
@@ -63,25 +59,31 @@ class Variable(Base):
         # Derefrence variable at indexs
         if len(self.indexs) != 0:
             # Load variable
-            var = self.state.builder.load(var)
+            #var = self.state.builder.load(var)
 
             # Evaluate indexs
-            #indexs = [ir.Constant(Integer.TYPE, 0)] # (Add 0 as variable itself is a pointer)
-            indexs = []
+            indexs = [ir.Constant(Integer.TYPE, 0)] # (Add 0 as variable itself is a pointer)
+            #indexs = []
             for index in self.indexs:
                 indexs.append(index.eval())
 
             # Derefrence at indexs
+            print(indexs)
             var = self.state.builder.gep(var, indexs, inbounds=True)
+            print(vars(var))
 
             # Get register pointer to output of above statement
             var = self._get_pointer(var)
+            print(var)
 
         if self.load:
             # Load variable
             var = self.state.builder.load(var)
 
         return var
+
+    def copy(self):
+        return Variable(self.state, self.name, self.indexs, self.load)
 
     def _get_var(self):
         if self.state.variables.get(self.name, False):

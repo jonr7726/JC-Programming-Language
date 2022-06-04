@@ -50,6 +50,12 @@ class Integer(Literal):
     def __init__(self, state, value):
         super().__init__(state, int(value), self.TYPE)
 
+class Long(Literal):
+    TYPE = ir.IntType(64)
+
+    def __init__(self, state, value):
+        super().__init__(state, int(value), self.TYPE)
+
 class Double(Literal):
     TYPE = ir.DoubleType()
 
