@@ -3,7 +3,7 @@ from llvmlite import ir
 from .lang import *
 
 class Parser():
-    def __init__(self, builder, functions, token_names):
+    def __init__(self, module, builder, functions, token_names):
         self.pg = ParserGenerator(
             token_names,
             precedence = [
@@ -28,11 +28,11 @@ class Parser():
                 ("right", ["NOT", "~", "++", "--"])
             ]
         )
-        self.state = self.ParserState(builder, functions)
+        self.state = self.ParserState(module, builder, functions)
 
     class ParserState(object):
-        def __init__(self, builder, functions, variables={}):
-            self.module = builder.module
+        def __init__(self, module, builder, functions, variables={}):
+            self.module = module
             self.builder = builder
             self.functions = functions
             self.variables = variables
@@ -45,6 +45,41 @@ class Parser():
                 self.loop_incrementor = None
 
     def parse(self):
+
+        @self.pg.production("program : program_statement")
+        def program(p):
+            return Sequence(self.state, p[0])
+
+        @self.pg.production("program : program_statement program")
+        def program_statement(p):
+            return p[1].add_statement(p[0])
+
+        @self.pg.production("program_statement : function")
+        def program_function(p):
+            return p[0]
+
+        @self.pg.production("function : type IDENTIFIER ( argument_def ) ;")
+        def function_declaration(p):
+            return Function(self.state, p[1], p[0], p[3])
+
+        @self.pg.production("function : type IDENTIFIER ( argument_def ) { sequence }")
+        def function_definition(p):
+            return Function(self.state, p[1], p[0], p[3], p[6])
+
+        @self.pg.production("argument_def : declaration , argument_def")
+        def argument_defs(p):
+            p[2].add_argument(p[0])
+            return p[2]
+
+        @self.pg.production("argument_def : declaration")
+        def argument_def(p):
+            return Arguments(self.state, p[0])
+
+        @self.pg.production("argument_def : ")
+        def no_argument(p):
+            return Arguments(self.state)
+
+
 
         ############
         # Sequence #
@@ -63,8 +98,11 @@ class Parser():
         def statement(p):
             return p[2].add_statement(p[0])
 
-        # Assignment
-        @self.pg.production("statement : type IDENTIFIER")
+        @self.pg.production("statement : declaration")
+        def statement_variable_declaration(p):
+            return p[0]
+
+        @self.pg.production("declaration : type IDENTIFIER")
         def variable_declaration(p):
             return Declaration(self.state, p[0], p[1].getstr())
 
@@ -99,11 +137,17 @@ class Parser():
         @self.pg.production("statement : BREAK")
         @self.pg.production("statement : CONTINUE")
         @self.pg.production("statement : RETURN")
+        @self.pg.production("statement : RETURN expression")
         def control_flow(p):
             if p[0].gettokentype() == "BREAK":
                 return Break(self.state)
             elif p[0].gettokentype() == "CONTINUE":
                 return Continue(self.state)
+            elif p[0].gettokentype() == "RETURN":
+                if len(p) == 1:
+                    return Return(self.state)
+                else:
+                    return Return(self.state, p[1])
 
         # Expression (for function calls, etc.)
         @self.pg.production("statement : expression")
@@ -113,7 +157,7 @@ class Parser():
         # Ensures a semicolon by itself is a valid statement
         # (This is useful for 'for loops')
         @self.pg.production("statement : ")
-        def expression(p):
+        def empty(p):
             return Pass()
 
         #############
@@ -193,50 +237,64 @@ class Parser():
         def array_type(p):
             return get_array_type(p[0], p[2].value)
 
-        @self.pg.production("type : INT")
-        @self.pg.production("type : LONG")
-        @self.pg.production("type : DOUBLE")
+        @self.pg.production("type : VOID")
         @self.pg.production("type : BOOL")
         @self.pg.production("type : CHAR")
+        @self.pg.production("type : SHORT")
+        @self.pg.production("type : INT")
+        @self.pg.production("type : LONG")
+        @self.pg.production("type : HALF")
+        @self.pg.production("type : FLOAT")
+        @self.pg.production("type : DOUBLE")
         def type(p):
-            if p[0].gettokentype() == "INT":
-                return Integer.TYPE
-            elif p[0].gettokentype() == "LONG":
-                return Long.TYPE
-            elif p[0].gettokentype() == "DOUBLE":
-                return Double.TYPE
-            elif p[0].gettokentype() == "BOOL":
-                return Boolean.TYPE
+            if p[0].gettokentype() == "VOID":
+                return VOID_TYPE
+            if p[0].gettokentype() == "BOOL":
+                return BOOLEAN_TYPE
             elif p[0].gettokentype() == "CHAR":
-                return Character.TYPE
-        
+                return CHARACTER_TYPE
+            elif p[0].gettokentype() == "SHORT":
+                return SHORT_TYPE
+            elif p[0].gettokentype() == "INT":
+                return INTEGER_TYPE
+            elif p[0].gettokentype() == "LONG":
+                return LONG_TYPE
+            elif p[0].gettokentype() == "HALF":
+                return HALF_TYPE
+            elif p[0].gettokentype() == "FLOAT":
+                return FLOAT_TYPE
+            elif p[0].gettokentype() == "DOUBLE":
+                return DOUBLE_TYPE
+
+        @self.pg.production("variable : variable derefrence")
+        def array_derefrence(p):
+            p[0].derefrence_at(p[1])
+            return p[0]
+
+        @self.pg.production("derefrence : [ expression ]")
+        def derefrence_at(p):
+            return p[1]
+
         @self.pg.production("variable : IDENTIFIER")
         def variable(p):
             return Variable(self.state, p[0].getstr(), [], True)
 
         @self.pg.production("variable : & IDENTIFIER")
-        def variable(p):
+        def variable_pointer(p):
             return Variable(self.state, p[0].getstr(), [], False)
 
-        @self.pg.production("variable : variable derefrence")
+        @self.pg.production("variable : * IDENTIFIER")
         def variable_derefrence(p):
-            p[0].derefrence_at(p[1])
-            return p[0]
-
-        @self.pg.production("derefrence : [ expression ]")
-        def derefrence(p):
-            return p[1]
+            return Variable(self.state, p[0].getstr(), [None], True)
 
         ###############
         # Expressions #
         ###############
 
         # Function calls
-        @self.pg.production("expression : PRINT ( argument )")
-        @self.pg.production("expression : MALLOC ( argument )")
-        @self.pg.production("expression : REALLOC ( argument )")
+        @self.pg.production("expression : IDENTIFIER ( argument )")
         def intrinsic_function(p):
-            return Function(self.state, p[0].getstr(), p[2])
+            return Call(self.state, p[0].getstr(), p[2])
 
         @self.pg.production("argument : expression , argument")
         def arguments(p):
@@ -246,6 +304,10 @@ class Parser():
         @self.pg.production("argument : expression")
         def argument(p):
             return Arguments(self.state, p[0])
+
+        @self.pg.production("argument : ")
+        def no_argument(p):
+            return Arguments(self.state)
 
         # Variables and literals
         @self.pg.production("expression : variable")

@@ -1,4 +1,5 @@
 from ..base import Base
+from .interupter import Break, Continue, Return
 
 class Sequence(Base):
 	def __init__(self, state, statement):
@@ -13,8 +14,8 @@ class Sequence(Base):
 		evals = []
 		for statement in self.statements:
 			evals.append(statement.eval())
-			if evals[-1] in ("BREAK", "CONTINUE", "RETURN"):
-				# Do not run code after interupter statements
+			if isinstance(evals[-1], (Break, Continue, Return)):
+				# Do not run code after interupter statements (unreachable)
 				break
 				
 		return evals

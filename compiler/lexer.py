@@ -85,21 +85,16 @@ class Lexer():
         # (Cant be grouped with other assignment operators due to regex precedence)
         self.lexer.add("=", r"\=")
 
-        # Functions
-        self.lexer.add("PRINT", r"printf")
-        self.lexer.add("MALLOC", r"malloc")
-        self.lexer.add("REALLOC", r"realloc")
-        self.lexer.add("FREE", r"free")
-
         # Data types
+        self.lexer.add("VOID", r"void")
+        self.lexer.add("BOOL", r"bool")
+        self.lexer.add("CHAR", r"char")
         self.lexer.add("SHORT", r"short")
         self.lexer.add("INT", r"int")
         self.lexer.add("LONG", r"long")
+        self.lexer.add("HALF", r"half")
         self.lexer.add("FLOAT", r"float")
         self.lexer.add("DOUBLE", r"double")
-        self.lexer.add("BOOL", r"bool")
-        self.lexer.add("CHAR", r"char")
-        self.lexer.add("STRING", r"string")
 
         # Key words
         self.lexer.add("IF", r"if")

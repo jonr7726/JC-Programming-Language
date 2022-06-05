@@ -1,5 +1,6 @@
 from .base import Base
 from llvmlite import ir
+from .types import *
 
 def sanatize(string):
 	character_map = {
@@ -45,58 +46,50 @@ class Literal(Base):
 		return ir.Constant(self.type, self.value)
 
 class Integer(Literal):
-    TYPE = ir.IntType(32)
-
-    def __init__(self, state, value):
-        super().__init__(state, int(value), self.TYPE)
+	def __init__(self, state, value):
+		super().__init__(state, int(value), INTEGER_TYPE)
 
 class Long(Literal):
-    TYPE = ir.IntType(64)
-
-    def __init__(self, state, value):
-        super().__init__(state, int(value), self.TYPE)
+	def __init__(self, state, value):
+		super().__init__(state, int(value), LONG_TYPE)
 
 class Double(Literal):
-    TYPE = ir.DoubleType()
-
-    def __init__(self, state, value):
-        super().__init__(state, float(value), self.TYPE)
+	def __init__(self, state, value):
+		super().__init__(state, float(value), DOUBLE_TYPE)
 
 class Boolean(Literal):
-	TYPE = ir.IntType(1)
-
 	def __init__(self, state, value):
-		super().__init__(state, (1 if str(value) == "true" else 0), self.TYPE)
+		super().__init__(state, (1 if str(value) == "true" else 0),
+			BOOLEAN_TYPE)
 
 class Character(Literal):
-	TYPE = ir.IntType(8)
-
 	def __init__(self, state, value):
-		super().__init__(state, sanatize_char(value), self.TYPE)
+		super().__init__(state, sanatize_char(value), CHARACTER_TYPE)
 
 class String(Literal):
-	TYPE = Character.TYPE.as_pointer()
-
 	def __init__(self, state, value):
-		super().__init__(state, sanatize_string(value), self.TYPE)
+		super().__init__(state, sanatize_string(value),
+			CHARACTER_TYPE.as_pointer())
 
 	def eval(self):
 		# Make constant character array
-		value = ir.Constant(ir.ArrayType(Character.TYPE, len(self.value)), self.value)
+		value = ir.Constant(ir.ArrayType(self.type.pointee, len(self.value)),
+			self.value)
 
 		# Check if string literal already exists
 		for var in self.state.module.global_values:
 			if isinstance(var, ir.GlobalVariable):
 				if var.initializer == value:
-					return self.state.builder.bitcast(var, String.TYPE)
+					return self.state.builder.bitcast(var, self.type)
 
 		# Make global variable of string literal
-		literal = ir.GlobalVariable(self.state.module, value.type, name=self.state.module.get_unique_name("str"))
+		literal = ir.GlobalVariable(self.state.module, value.type,
+			name=self.state.module.get_unique_name("str"))
 		literal.linkage = "private"
 		literal.global_constant = True
 		literal.unnamed_addr = True
 		literal.initializer = value
 
 		# Convert pointer to character array to character pointer
-		return self.state.builder.bitcast(literal, String.TYPE)
+		return self.state.builder.bitcast(literal, self.type)
 		#return self.state.builder.gep(literal, , inbounds=True)

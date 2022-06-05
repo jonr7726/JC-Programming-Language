@@ -1,66 +1,7 @@
 from ..base import Base, FLOATING_TYPES
 from abc import abstractmethod
 from llvmlite import ir
-from .unary_ops import Cast
-
-# Attempts to cast the right side and left side so they are of the same type
-# Cast will attempt to avoid loss of data when choosing which side's type to cast to
-# If no transformation can be made results in an error
-class ImplicitCast(Cast):
-	def __init__(self, state, left, right):
-		super().__init__(state, None, None)
-		self.left = left
-		self.right = right
-
-	def eval(self):
-		# Evaluate both sides
-		left_val = self.left.eval()
-		right_val = self.right.eval()
-
-		# Find appropriate cast to avoid data loss
-		if isinstance(left_val.type, type(right_val.type)):
-			# Already the same
-			if isinstance(left_val.type, ir.IntType):
-				# Resize integer
-				if left_val.type.width > right_val.type.width:
-					self.type = left_val.type
-				else:
-					self.type = right_val.type
-			else:
-				# No casting necessary
-				return left_val, right_val
-
-		elif isinstance(left_val.type, ir.PointerType):
-			if isinstance(right_val.type, ir.IntType):
-				# Cast pointer to integer
-				self.type = right_val.type
-
-		elif isinstance(left_val.type, ir.IntType):
-			if isinstance(right_val.type, FLOATING_TYPES):
-				# Cast integer to floating point
-				self.type = right_val.type
-
-		elif isinstance(left_val.type, FLOATING_TYPES):
-			if isinstance(right_val.type, ir.IntType):
-				# Cast integer to floating point
-				self.type = left_val.type
-
-			elif isinstance(right_val.type, FLOATING_TYPES):
-				# Resize floating point (to larger precision)
-				if isinstance(left_val, ir.HalfType) or (
-					isinstance(left_val, ir.FloatType) and isinstance(right_val, ir.DoubleType)):
-
-					# (Right value larger)
-					self.type = right_val.type
-				else:
-					self.type = left_val.type
-
-		if self.type != None:
-			return self.eval_op(left_val), self.eval_op(right_val)
-		else:
-			raise Exception("Cannot implicitly cast types %s and %s" % (
-				left_val.type, right_val.type))
-
+from .casting import Cast, ImplicitCast
 
 # Superclass for binary operations
 # Will implicity cast both sides to same time avoiding data loss

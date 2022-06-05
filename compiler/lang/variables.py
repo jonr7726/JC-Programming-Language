@@ -1,7 +1,7 @@
 from .base import Base
 from llvmlite import ir
 from .literals import Integer, Double, String
-from .operations.unary_ops import Cast
+from .operations.casting import Cast
 
 def get_array_type(type, size):
     return ir.ArrayType(type, int(size))
@@ -14,6 +14,9 @@ class Declaration(Base):
         self.var = Variable(state, name, [], False)
 
     def eval(self):
+        if isinstance(self.type, ir.VoidType):
+            raise Exception("Cannot declare variable as type void")
+
         self.state.variables[self.name] = self.state.builder.alloca(self.type, name=self.name)
         return self.var.eval()
 
@@ -65,7 +68,11 @@ class Variable(Base):
             indexs = [ir.Constant(Integer.TYPE, 0)] # (Add 0 as variable itself is a pointer)
             #indexs = []
             for index in self.indexs:
-                indexs.append(index.eval())
+                if index == None:
+                    # (For pointer derefrence)
+                    indexs.append(0)
+                else:
+                    indexs.append(index.eval())
 
             # Derefrence at indexs
             print(indexs)

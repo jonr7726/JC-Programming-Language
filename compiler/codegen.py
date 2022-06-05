@@ -1,5 +1,5 @@
 from llvmlite import ir, binding
-from .lang.literals import Integer, Character, String
+from .lang.types import *
 
 class CodeGen():
     def __init__(self):
@@ -15,10 +15,7 @@ class CodeGen():
         # Config LLVM
         self.module = ir.Module(name=__file__)
         self.module.triple = self.binding.get_default_triple()
-        func_type = ir.FunctionType(ir.VoidType(), [], False)
-        base_func = ir.Function(self.module, func_type, name="main")
-        block = base_func.append_basic_block(name="entry")
-        self.builder = ir.IRBuilder(block)
+        self.builder = ir.IRBuilder()
 
     def _create_execution_engine(self):
         """
@@ -37,16 +34,22 @@ class CodeGen():
         self.functions = {}
 
         # Declare Printf function
-        printf_ty = ir.FunctionType(Integer.TYPE, [String.TYPE], var_arg=True)
-        self.functions["printf"] = ir.Function(self.module, printf_ty, name="printf")
+        printf_ty = ir.FunctionType(INTEGER_TYPE,
+            [CHARACTER_TYPE.as_pointer()], var_arg=True)
+        self.functions["printf"] = ir.Function(self.module, printf_ty,
+            name="printf")
 
         # Declare Malloc function
-        malloc_ty = ir.FunctionType(String.TYPE, [Integer.TYPE], var_arg=True)
-        self.functions["malloc"] = ir.Function(self.module, malloc_ty, name="malloc")
+        malloc_ty = ir.FunctionType(CHARACTER_TYPE.as_pointer(),
+            [INTEGER_TYPE], var_arg=True)
+        self.functions["malloc"] = ir.Function(self.module, malloc_ty,
+            name="malloc")
 
         # Declare Realloc function
-        realloc_ty = ir.FunctionType(String.TYPE, [String.TYPE, Integer.TYPE], var_arg=True)
-        self.functions["realloc"] = ir.Function(self.module, realloc_ty, name="realloc")
+        realloc_ty = ir.FunctionType(CHARACTER_TYPE.as_pointer(),
+            [CHARACTER_TYPE.as_pointer(), INTEGER_TYPE], var_arg=True)
+        self.functions["realloc"] = ir.Function(self.module, realloc_ty,
+            name="realloc")
 
     def _compile_ir(self, debug):
         """
@@ -54,7 +57,6 @@ class CodeGen():
         The compiled module object is returned.
         """
         # Create a LLVM module object from the IR
-        self.builder.ret_void()
         llvm_ir = str(self.module)
         if debug: print(llvm_ir)
         mod = self.binding.parse_assembly(llvm_ir)

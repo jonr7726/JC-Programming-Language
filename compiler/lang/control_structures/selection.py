@@ -1,5 +1,5 @@
 from ..base import Base
-from .interupter import Break, Continue
+from .interupter import Break, Continue, Return
 
 class BinarySelection(Base):
 	def __init__(self, state, condition, then, otherwise=None):
@@ -35,7 +35,7 @@ class BinarySelection(Base):
 		if not isinstance(self.then.statements[0], Break):
 			self.state.builder.position_at_end(then)
 			self.then.eval()
-			if not isinstance(self.then.statements[-1], Continue):
+			if not isinstance(self.then.statements[-1], (Break, Continue, Return)):
 				self.state.builder.branch(endif)
 
 		# Create otherwise (else) block
@@ -43,16 +43,10 @@ class BinarySelection(Base):
 			if not isinstance(self.otherwise.statements[0], Break):
 				self.state.builder.position_at_end(otherwise)
 				self.otherwise.eval()
-				if not isinstance(self.otherwise.statements[-1], Continue):
+				if not isinstance(self.otherwise.statements[-1], (Break, Continue, Return)):
 					self.state.builder.branch(endif)
 		
 		self.state.builder.position_at_end(endif)
-
-class NestedBinarySelection(BinarySelection):
-	def __init__(self, state, condition, then, nested, otherwise=None):
-		
-
-		super().__init__(state, condition, then, self.nested)
 
 class MultiwaySelection(Base):
 	def __init__(self, state, block):
@@ -73,6 +67,21 @@ class MultiwaySelection(Base):
 		return self
 
 	def eval(self):
+		def make_block(block, case, broken):
+			# Goto next block
+			if not broken:
+				self.state.builder.branch(case)
+			self.state.builder.position_at_end(case)
+
+			# Create code in block
+			block_val = block.eval()[-1]
+
+			if isinstance(block_val, Continue):
+				raise Exception("Error, cannot continue inside a switch statement")
+
+			# Return if broken
+			return isinstance(block_val, (Break, Return))
+
 		# Create block jumps
 		start = self.state.builder.block
 		cases = [self.state.builder.append_basic_block() for block in self.blocks]
@@ -84,20 +93,11 @@ class MultiwaySelection(Base):
 
 		broken = False
 		for block, case in zip(self.blocks, cases):
-			# Goto next block
-			if not broken:
-				self.state.builder.branch(case)
-			self.state.builder.position_at_end(case)
-
-			# Create code in block
-			broken = block.eval()[-1] == "BREAK"
+			broken = make_block(block, case, broken)
 
 		# Add default case
 		if default != None:
-			if not broken:
-				self.state.builder.branch(default)
-			self.state.builder.position_at_end(default)
-			broken = self.default.eval()[-1] == "BREAK"
+			broken = make_block(self.default, default, broken)
 
 		# Return to main control sequence
 		if not broken:

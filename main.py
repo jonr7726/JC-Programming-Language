@@ -196,7 +196,7 @@ token_names = [rule.name for rule in lexer.rules]
 codegen = compiler.CodeGen()
 
 # Parse tokens
-pg = compiler.Parser(codegen.builder, codegen.functions, token_names)
+pg = compiler.Parser(codegen.module, codegen.builder, codegen.functions, token_names)
 pg.parse()
 parser = pg.get_parser()
 
