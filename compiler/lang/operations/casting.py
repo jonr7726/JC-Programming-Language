@@ -1,4 +1,4 @@
-from ..base import Base
+from ..base import Base, FLOATING_TYPES
 from llvmlite import ir
 
 # Casts expression to another type (if not already the same)

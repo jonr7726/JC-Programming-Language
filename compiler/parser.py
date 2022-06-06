@@ -66,18 +66,18 @@ class Parser():
         def function_definition(p):
             return Function(self.state, p[1], p[0], p[3], p[6])
 
-        @self.pg.production("argument_def : declaration , argument_def")
+        @self.pg.production("argument_def : type IDENTIFIER , argument_def")
         def argument_defs(p):
-            p[2].add_argument(p[0])
+            p[2].add_argument(p[0], p[1])
             return p[2]
 
-        @self.pg.production("argument_def : declaration")
+        @self.pg.production("argument_def : type IDENTIFIER")
         def argument_def(p):
-            return Arguments(self.state, p[0])
+            return FunctionArgs(self.state, p[0], p[1])
 
         @self.pg.production("argument_def : ")
         def no_argument(p):
-            return Arguments(self.state)
+            return FunctionArgs(self.state)
 
 
 
@@ -107,28 +107,32 @@ class Parser():
             return Declaration(self.state, p[0], p[1].getstr())
 
         @self.pg.production("statement : variable = expression")
+        @self.pg.production("statement : variable ++")
+        @self.pg.production("statement : variable --")
         @self.pg.production("statement : variable += expression")
         @self.pg.production("statement : variable -= expression")
         @self.pg.production("statement : variable *= expression")
         @self.pg.production("statement : variable /= expression")
-        @self.pg.production("statement : variable ++")
-        @self.pg.production("statement : variable --")
+        @self.pg.production("statement : variable %= expression")
+        @self.pg.production("statement : variable >>= expression")
+        @self.pg.production("statement : variable <<= expression")
+        @self.pg.production("statement : variable ^= expression")
+        @self.pg.production("statement : variable |= expression")
+        @self.pg.production("statement : variable &= expression")
         def variable_assignment(p):
-            if p[1].gettokentype() == "=":
-                return Assignment(self.state, p[0], p[2])
-            elif p[1].gettokentype() == "+=":
-                return Assignment(self.state, p[0], Addition(self.state, p[0].copy(), p[2]))
-            elif p[1].gettokentype() == "-=":
-                return Assignment(self.state, p[0], Subtraction(self.state, p[0].copy(), p[2]))
-            elif p[1].gettokentype() == "*=":
-                return Assignment(self.state, p[0], Multiplication(self.state, p[0].copy(), p[2]))
-            elif p[1].gettokentype() == "/=":
-                return Assignment(self.state, p[0], Division(self.state, p[0].copy(), p[2]))
-            elif p[1].gettokentype() == "++":
-                return Assignment(self.state, p[0], Addition(self.state, p[0].copy(), Integer(self.state, 1)))
-            elif p[1].gettokentype() == "--":
-                return Assignment(self.state, p[0], Subtraction(self.state, p[0].copy(), Integer(self.state, 1)))
-        
+            if p[1].gettokentype() != "=":
+                # Operation assignment
+
+                if p[1].gettokentype() in ("++", "--"):
+                    # Increment / decrement
+                    p.append(Integer(self.state, 1))
+
+                # Calculate operation
+                p[2] = Operation(self.state, p[1], p[0].copy(), p[2])
+
+            # Regular assignment
+            return Assignment(self.state, p[0], p[2])
+
         @self.pg.production("statement : type IDENTIFIER = expression")
         def variable_declaration_assignment(p):
             return Assignment(self.state, Declaration(self.state, p[0], p[1].getstr()), p[3])
@@ -281,11 +285,11 @@ class Parser():
 
         @self.pg.production("variable : & IDENTIFIER")
         def variable_pointer(p):
-            return Variable(self.state, p[0].getstr(), [], False)
+            return Variable(self.state, p[1].getstr(), [], False)
 
         @self.pg.production("variable : * IDENTIFIER")
         def variable_derefrence(p):
-            return Variable(self.state, p[0].getstr(), [None], True)
+            return Variable(self.state, p[1].getstr(), [None], True)
 
         ###############
         # Expressions #
@@ -298,16 +302,16 @@ class Parser():
 
         @self.pg.production("argument : expression , argument")
         def arguments(p):
-            p[2].add_argument(p[0])
+            p[2].add_arg(p[0])
             return p[2]
 
         @self.pg.production("argument : expression")
         def argument(p):
-            return Arguments(self.state, p[0])
+            return CallArgs(self.state, p[0])
 
         @self.pg.production("argument : ")
         def no_argument(p):
-            return Arguments(self.state)
+            return CallArgs(self.state)
 
         # Variables and literals
         @self.pg.production("expression : variable")
@@ -344,7 +348,7 @@ class Parser():
             return Cast(self.state, p[3], p[1])
 
         @self.pg.production("expression : - expression")
-        @self.pg.production("expression : * expression")
+        @self.pg.production("expression : ~ expression")
         @self.pg.production("expression : NOT expression")
         def unary_ops(p):
             return Operation(self.state, p[0], left=None, right=p[1])

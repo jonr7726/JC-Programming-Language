@@ -1,6 +1,6 @@
 from .base import Base
 from llvmlite import ir
-from .literals import Integer, Double, String
+from .types import INTEGER_TYPE
 from .operations.casting import Cast
 
 def get_array_type(type, size):
@@ -27,11 +27,7 @@ class Assignment(Base):
         self.expression = expression
 
     def eval(self):
-        if isinstance(self.var, Variable):
-            # Variable must not be loaded
-            # (If this condition is not met, self.var is
-            # declaration, and load is already set to false)
-            self.var.load = False
+        self.var.load = False
 
         var = self.var.eval()
 
@@ -53,35 +49,33 @@ class Variable(Base):
     def eval(self):
         # Find var in variables
         var = self._get_var()
-        print("")
-        print(var)
-
-        # Get register pointer to variable
-        var = self._get_pointer(var)
 
         # Derefrence variable at indexs
         if len(self.indexs) != 0:
-            # Load variable
-            #var = self.state.builder.load(var)
+
+            if isinstance(var.type.pointee, ir.PointerType):
+                # Load first to derefrence initial variable pointer
+                var = self.state.builder.load(var)
+                indexs = []
+            else:
+                # (First derefrence is to access array at pointer to variable)
+                indexs = [ir.Constant(ir.IntType(64), 0)]
+
+            var = self._get_pointer(var)
 
             # Evaluate indexs
-            indexs = [ir.Constant(Integer.TYPE, 0)] # (Add 0 as variable itself is a pointer)
-            #indexs = []
             for index in self.indexs:
                 if index == None:
                     # (For pointer derefrence)
-                    indexs.append(0)
+                    indexs.append(ir.Constant(ir.IntType(64), 0))
                 else:
                     indexs.append(index.eval())
 
             # Derefrence at indexs
-            print(indexs)
             var = self.state.builder.gep(var, indexs, inbounds=True)
-            print(vars(var))
 
-            # Get register pointer to output of above statement
+        else:
             var = self._get_pointer(var)
-            print(var)
 
         if self.load:
             # Load variable

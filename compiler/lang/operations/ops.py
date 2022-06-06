@@ -42,27 +42,27 @@ class Operation(Base): # (Note not Sided, as only its op needs to have that info
 				return Comparison(self.state, left, right)
 
 			# Arithmetic
-			elif token == "+":
+			elif token in ("+", "+=", "++"):
 				# Addition (signed)
 				return Addition(self.state, left, right)
-			elif token == "-":
+			elif token in ("-", "-=", "--"):
 				# Subtraction
 				return Subtraction(self.state, left, right)
-			elif token == "*":
+			elif token in ("*", "*="):
 				# Multiplication
 				return Multiplication(self.state, left, right)
-			elif token == "/":
+			elif token in ("/", "/="):
 				# Division
 				return Division(self.state, left, right)
-			elif token == "PERCENTAGE":
+			elif token in ("PERCENTAGE", "%="):
 				# Modulus
 				return Modulus(self.state, left, right)
 
 			# Bit shifts
-			elif token == "<<":
+			elif token in ("<<", "<<="):
 				# Left shift
 				return LeftShift(self.state, left, right)
-			elif token == ">>":
+			elif token in (">>", ">>="):
 				# Right shift (signed)
 				return RightShift(self.state, left, right)
 
@@ -87,13 +87,13 @@ class Operation(Base): # (Note not Sided, as only its op needs to have that info
 				return BoolNOR(self.state, left, right)
 
 			# Bitwise logic
-			elif token == "&":
+			elif token in ("&", "&="):
 				# Bitwise AND
 				return BitAND(self.state, left, right)
-			elif token == "^":
+			elif token in ("^", "^="):
 				# Bitwise XOR
 				return BitXOR(self.state, left, right)
-			elif token == "|":
+			elif token in ("|", "|="):
 				# Bitwise OR
 				return BitOR(self.state, left, right)
 

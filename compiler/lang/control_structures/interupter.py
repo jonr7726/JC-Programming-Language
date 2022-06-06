@@ -46,7 +46,7 @@ class Return(Base):
 		else:
 			if self.expression != None:
 				# Implicity cast expression to return type
-				expr = Cast(self.expression, self.type).eval()
+				expr = Cast(self.state, self.expression, self.type).eval()
 
 				# Return expression
 				self.state.builder.ret(expr)
