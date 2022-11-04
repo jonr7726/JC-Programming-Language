@@ -1,5 +1,5 @@
 from rply import ParserGenerator
-from llvmlite import ir
+from llvmlite import ir, binding
 from .lang import *
 
 class Parser():
@@ -36,6 +36,7 @@ class Parser():
             self.builder = builder
             self.functions = functions
             self.variables = variables
+            self.mod_refs = []
             self.control = self.Control()
 
         class Control(object):
@@ -57,6 +58,11 @@ class Parser():
         @self.pg.production("program_statement : function")
         def program_function(p):
             return p[0]
+
+        @self.pg.production("program_statement : IMPORT STRING_VAL ;")
+        def link_module(p):
+            self.state.mod_refs.append(p[1].getstr()[1:-1])
+            return Pass()
 
         @self.pg.production("function : type IDENTIFIER ( argument_def ) ;")
         def function_declaration(p):
@@ -250,7 +256,7 @@ class Parser():
         @self.pg.production("type : HALF")
         @self.pg.production("type : FLOAT")
         @self.pg.production("type : DOUBLE")
-        def type(p):
+        def data_type(p):
             if p[0].gettokentype() == "VOID":
                 return VOID_TYPE
             if p[0].gettokentype() == "BOOL":

@@ -6,9 +6,9 @@ class Lexer():
         self.lexer = LexerGenerator()
 
     def _add_tokens(self):
-        # Ignore comments
-        self.lexer.ignore(r"\/\/.*\n")
-        self.lexer.ignore(r"\/\*(?:(?!\*\/)[\s\S])*\*\/")
+        # Ignore comments (done in preprocessor)
+        #self.lexer.ignore(r"\/\/.*\n")
+        #self.lexer.ignore(r"\/\*(?:(?!\*\/)[\s\S])*\*\/")
 
         # Parenthesis
         self.lexer.add("(", r"\(")
@@ -20,6 +20,7 @@ class Lexer():
 
         # Misc
         self.lexer.add(",", r"\,")
+        self.lexer.add(".", r"\.")
         self.lexer.add(":", r"\:")
         self.lexer.add(";", r"\;")
         self.lexer.add("->", r"\-\>")
@@ -108,12 +109,14 @@ class Lexer():
         self.lexer.add("UNTIL", r"until")
         self.lexer.add("FOR", r"for")
 
+        self.lexer.add("IMPORT", r"import")
+
         self.lexer.add("BREAK", r"break")
         self.lexer.add("CONTINUE", r"continue")
         self.lexer.add("RETURN", r"return")
 
         # Identifiers
-        self.lexer.add("IDENTIFIER", r"\w+")
+        self.lexer.add("IDENTIFIER", r"[\w\.\/]+")
 
         # Ignore spaces
         self.lexer.ignore(r"\s+")

@@ -1,0 +1,65 @@
+/* 
+Main ideas for language:
+ - Mix of C and Java
+ - Compiled, but portable
+ - Allows importing with object code, and as plain text
+ - (Unlike C...) has [] in type for arrays
+ - OOP ideas:
+	 - Java, but allows magic methods like python
+	 - No getters or setters: but when public variables are accessed they are put through magic (potentially overrided) getters and setters
+
+TODO:
+ - make sublime editor
+ - fix comments in preprocessor -do not delete them! -Also find a way to show line numbers and files in errors that occur in included files
+ 		- Or, just dont use the include, and just use module linking
+ - macros
+ - structs
+
+ - objects (idea to have object for byte, and create own operations to allow datatypes larger than 64 bits)
+ - float comparison fast math flags (need to figure out data types thoroughly before can do this)
+*/
+
+import "lib/build/lib.ll";
+
+int hello(int* i);
+
+void main() {
+	int i = 5;
+	int b = hello(&i);
+	printf("%d\n", i);
+	printf("%d\n", b);
+
+	return;
+}
+
+/*int hello(int* i) {
+	*i++;
+	printf("%d\n", *i);
+
+	return 3;
+}*/
+
+/*
+int bits = 64;
+long[2] size;
+
+size[0] = 0;
+size[1] = 0;
+
+for (int l = 0; bits > 0; l++) {
+	int i = bits;
+
+	if (i > 63) {
+		i = 63;
+		bits = bits - i;
+		continue;
+	}
+	bits = bits - i;
+
+	size[l] = size[l] + (((long) 1) << i);
+}
+
+printf("%ld\n", size[0] - 1);
+printf("%ld\n", size[0]);
+printf("%ld\n", size[1] - 1);
+printf("%ld\n", size[1]);*/

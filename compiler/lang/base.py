@@ -14,7 +14,7 @@ class Base(BaseBox):
 
 	# After eval run, self.type must be initialized
 	@abstractmethod
-	def eval():
+	def eval(self):
 		pass
 
 # (Does nothing)
@@ -22,5 +22,5 @@ class Pass(Base):
 	def __init__(self):
 		super().__init__(None, type=None)
 
-	def eval():
+	def eval(self):
 		pass

@@ -1,4 +1,5 @@
 import sys
+import os
 import subprocess
 import compiler
 from compiler.error import JCError
@@ -57,6 +58,10 @@ options = {
     "ir": Option(
         "ll", "ir",
         help_message="Does not delete IR file ('.ll' file) after compiling"
+    ),
+    "lib": Option(
+        "lib",
+        help_message="Compiles only to IR file (overrides -ir (-ll) and -i options)"
     ),
     "interpret": Option(
         "i",
@@ -182,9 +187,16 @@ if options["output"].val != None:
 else:
     out_file = source_file.split(".")[0]
 
+# Set input directory
+directory = os.path.dirname(os.path.realpath(source_file))
+
 # Open source code file
 with open(source_file) as f:
     text_input = f.read()
+
+# Run preprocessor
+pre = compiler.Preprocessor(directory)
+text_input = pre.process(text_input)
 
 # Perform lexical analysis
 lexer = compiler.Lexer().get_lexer()
@@ -210,24 +222,25 @@ if options["debug"].val:
         print("Reduce/reduce conflict: %s" % str(warning))
 
 # Compile to IR
-codegen.create_ir(options["debug"].val)
+codegen.create_ir(pg.state.mod_refs, options["debug"].val)
 codegen.save_ir(out_file + ".ll")
 
-# Compile to object code
-res =  subprocess.call("llc -filetype=obj %s.ll" % out_file, shell = True)
-if res != 0:
-    raise JCError("Error compiling IR: %s" % res)
+if options["lib"].val == False:
+    # Compile to object code
+    res =  subprocess.call("llc -filetype=obj %s.ll" % out_file, shell = True)
+    if res != 0:
+        raise JCError("Error compiling IR: %s" % res)
 
-# Delete IR file
-if options["ir"].val == False:
-    subprocess.call("rm %s.ll" % out_file, shell = True)
+    # Delete IR file
+    if options["ir"].val == False:
+        subprocess.call("rm %s.ll" % out_file, shell = True)
 
-# Compile to machine code
-res = subprocess.call("gcc %s.o -o %s -no-pie" % (out_file, out_file), shell = True)
-if res != 0:
-    raise JCError("Error compiling IR: %s" % res)
+    # Compile to machine code
+    res = subprocess.call("gcc %s.o -o %s -no-pie" % (out_file, out_file), shell = True)
+    if res != 0:
+        raise JCError("Error compiling IR: %s" % res)
 
-# Run code and delete output file
-if options["interpret"].val == True:
-    subprocess.call("./%s" % out_file, shell = True)
-    subprocess.call("rm %s" % out_file, shell = True)
+    # Run code and delete output file
+    if options["interpret"].val == True:
+        subprocess.call("./%s" % out_file, shell = True)
+        subprocess.call("rm %s" % out_file, shell = True)

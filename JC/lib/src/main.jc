@@ -1,0 +1,7 @@
+include "hello.jc"
+
+int hello(int* a) {
+	hello_world();
+	*a++;
+	return 2;
+}

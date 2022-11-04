@@ -61,14 +61,25 @@ class CodeGen():
         if debug: print(llvm_ir)
         mod = self.binding.parse_assembly(llvm_ir)
         mod.verify()
+
+        # Link modules
+        for ref in self.mod_refs:
+            with open(ref) as f:
+                mod_ref = binding.parse_assembly(f.read())
+                if debug: print(mod_ref)
+                mod_ref.verify()
+                mod.link_in(mod_ref)
+
+        if debug: print("\n\n\n\n\n", dir(mod))
         # Now add the module and make sure it is ready for execution
         self.engine.add_module(mod)
         self.engine.finalize_object()
         self.engine.run_static_constructors()
         return mod
 
-    def create_ir(self, debug=False):
-        self._compile_ir(debug)
+    def create_ir(self, mod_refs, debug=False):
+        self.mod_refs = mod_refs
+        self.module = self._compile_ir(debug)
 
     def save_ir(self, filename):
         with open(filename, 'w') as output_file:

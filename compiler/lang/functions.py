@@ -41,10 +41,10 @@ class FunctionArgs(Base):
         self.names = []
         self.type = []
         if arg_type != None:
-            self.add_arg(arg_type, arg_name)
+            self.add_arg(arg_type, arg_name.getstr())
     
     def add_arg(self, arg_type, arg_name):
-        self.names.append(arg_name.getstr())
+        self.names.append(arg_name)
         self.type.append(arg_type)
         
     def eval(self):
@@ -58,9 +58,9 @@ class Function(Base):
         self.args = args
         self.block = block # (None for declarations)
 
-        self.func = self.__declare()
+        self.func = self._declare()
 
-    def __declare(self):
+    def _declare(self):
         if self.name in self.state.functions:
             raise Exception("Cannot redeclare function %s" % self.name)
 

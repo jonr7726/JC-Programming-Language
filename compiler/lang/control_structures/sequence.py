@@ -2,9 +2,11 @@ from ..base import Base
 from .interupter import Break, Continue, Return
 
 class Sequence(Base):
-	def __init__(self, state, statement):
+	def __init__(self, state, statement=None):
 		super().__init__(state, type=None)
-		self.statements = [statement]
+		self.statements = []
+		if statement != None:
+			self.add_statement(statement)
 
 	def add_statement(self, statement):
 		self.statements.insert(0, statement)
