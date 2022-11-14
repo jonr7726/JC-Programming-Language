@@ -1,3 +1,6 @@
 # JC-Programming-Language
 A self-made programming language.
-This is a WIP C compiler that compiles to LLVM-IR assembly language, (and then this code will be compiled to machine code).
+This is a WIP compiler written in C using Yacc and Bison that compiles to LLVM-IR assembly language, (which can then be further compiled to machine code).
+
+## Structure
+Yacc and Bison are used to generate a parser (which handles lexical and syntactical analysis). From there, code-generation is done to output LLVM-IR code.
