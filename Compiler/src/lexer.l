@@ -28,6 +28,8 @@ commentMulti	\/\*(.*\n)*.*\*\/
 "-"						{ return MINUS; }
 "("						{ return BRACKET_OPEN; }
 ")"						{ return BRACKET_CLOSE; }
+"{"						{ return BRACKET_CURLY_OPEN; }
+"}"						{ return BRACKET_CURLY_CLOSE; }
 
 "int"					{ return INT_TYPE; }
 "float"					{ return FLOAT_TYPE; }

@@ -18,7 +18,7 @@
 
 
 /* Terminal Symbols */
-%token <token> SEMICOLON EQUALS BRACKET_OPEN BRACKET_CLOSE PLUS MINUS
+%token <token> SEMICOLON BRACKET_OPEN BRACKET_CLOSE BRACKET_CURLY_OPEN BRACKET_CURLY_CLOSE EQUALS PLUS MINUS
 %token <token> INT_TYPE FLOAT_TYPE VOID_TYPE
 %token <string> LONG_VALUE INT_VALUE SHORT_VALUE DOUBLE_VALUE FLOAT_VALUE
 %token <string> IDENTIFIER
@@ -53,7 +53,7 @@ statements	: statement { $$ = $1; }
 			}
 			;
   
-statement	: data_type IDENTIFIER SEMICOLON { // Declaration
+statement	: data_type IDENTIFIER SEMICOLON { // Variable eclaration
 				// Ensure identifier does not already exist and has valid data type
 				if (identifier_declared($2)) {
 					declaration_error("Variable already declared", yylineno);
@@ -62,8 +62,10 @@ statement	: data_type IDENTIFIER SEMICOLON { // Declaration
 				}
 				
 				// Store identifier in symbol table
-				symbol_table[symbol_table_size].name = $2;
-    			symbol_table[symbol_table_size].type = $1;
+				symbol_table[symbol_table_size] = (struct Identifier) {
+					.name = $2,
+					.type = $1
+				};
 
 				// Add statement node
 				statements[statements_size] = (struct Statement) {
@@ -73,7 +75,7 @@ statement	: data_type IDENTIFIER SEMICOLON { // Declaration
 				};
 				$$ = &statements[statements_size++];
 			}
-			| variable EQUALS expression SEMICOLON { // (Re)assignment
+			| variable EQUALS expression SEMICOLON { // Variable (re)assignment
 				// Ensure valid assignment data type
 				if ($1->type != $3->data_type) {
 					char expected[100];
@@ -88,6 +90,39 @@ statement	: data_type IDENTIFIER SEMICOLON { // Declaration
 					.type = ASSIGNMENT,
 					.statement.assignment.identifier = $1,
 					.statement.assignment.expression = $3,
+					.next = NULL
+				};
+				$$ = &statements[statements_size++];
+			}
+			| data_type IDENTIFIER BRACKET_OPEN BRACKET_CLOSE BRACKET_CURLY_OPEN statements BRACKET_CURLY_CLOSE { // Subroutine declaration
+				// Ensure identifier does not already exist
+				if (identifier_declared($2)) {
+					declaration_error("Variable already declared", yylineno);
+				}
+
+				// Store parameter identifiers in symbol table
+				// TODO: Add parameters
+
+				// Create new data type for subroutine
+				data_types[data_types_size] = (struct DataType) {
+					.type = SUBROUTINE_TYPE,
+					.data_type.subroutine = (struct SubroutineDataType) {
+			            .parameter_size = 0,
+			            .return_type = $1
+					}
+				};
+
+				// Store subroutine identifier in symbol table
+				symbol_table[symbol_table_size] = (struct Identifier) {
+					.name = $2,
+					.type = &data_types[data_types_size++]
+				};
+
+				// Add statement node
+				statements[statements_size] = (struct Statement) {
+					.type = SUBROUTINE,
+					.statement.subroutine.identifier = &symbol_table[symbol_table_size++],
+					.statement.subroutine.body = $6,
 					.next = NULL
 				};
 				$$ = &statements[statements_size++];
@@ -166,7 +201,7 @@ void print_symbol_table() {
 	printf("\n");
 	// Print table body
 	for (int i = 0; i < symbol_table_size; i++) {
-		char data_type[100];
+		char data_type[200];
 		type_to_string(data_type, symbol_table[i].type);
 		printf("%-30s%s\n", symbol_table[i].name, data_type);
 	}
@@ -199,28 +234,36 @@ void print_litteral_table() {
 	printf("\n\n");
 }
 
-void print_ast() {
-	// Print title
-	printf("ABSTRACT SYNTAX TREE:\n\n");
+void print_ast(struct Statement* statement, int indent) {	
 	// Print each statement until has none left in linked list
-	struct Statement* statement = statements;
-	do {
+	while (statement != NULL) {
+		// Print indent
+		for (int i = 0; i < indent; i++) { printf("\t"); }
+
+		char data_type[100];
 		switch (statement->type) {
 	        case DECLARATION:
-	            printf("Declaration of identifier %s\n",
-	                statement->statement.declaration.identifier->name);
+	        	type_to_string(data_type, statement->statement.declaration.identifier->type);
+	            printf("Declaration of %s of type %s\n",
+	                statement->statement.declaration.identifier->name, data_type);
 	            break;
 	        case ASSIGNMENT:
-	            printf("Assignment of identifier %s\n",
+	            printf("Assignment of %s\n",
 	                statement->statement.assignment.identifier->name);
 	            break;
 	        case EXPRESSION:
-	            char data_type[100];
 	            type_to_string(data_type, statement->statement.expression->data_type);
 	            printf("Expression of type %s\n", data_type);
+	            break;
+	        case SUBROUTINE:
+	            type_to_string(data_type, statement->statement.subroutine.identifier->type);
+	            printf("Subroutine %s of type %s\n",
+	            	statement->statement.subroutine.identifier->name, data_type);
+	            // Recursively print subroutine
+	            print_ast(statement->statement.subroutine.body, indent + 1);
 	    }
 	    statement = statement->next;
-	} while (statement->next != NULL);
+	}
 	printf("\n\n");
 }
 
@@ -231,6 +274,8 @@ int main() {
 
 	print_symbol_table();
 	print_litteral_table();
-	print_ast();
+
+	printf("ABSTRACT SYNTAX TREE:\n\n");
+	print_ast(statements, 0);
 	return 0;
 }

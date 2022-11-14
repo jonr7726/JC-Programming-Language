@@ -43,7 +43,7 @@ extern int yylineno;
 
 void print_symbol_table();
 void print_litteral_table();
-void print_ast();
+void print_ast(struct Statement*, int);
 
 /* All statements for code generation. */
 struct Statement statements[MAX_STATEMENTS];
@@ -130,42 +130,46 @@ struct DataType* get_litteral_type(struct Litteral* litteral) {
 
 /* Converts a data type to a string and stores it at buffer. */
 void type_to_string(char* buffer, struct DataType* type) {
+    // Handle null type
+    if (type == NULL) {
+        strcpy(buffer, "void");
+        return;
+    }
+
     // Get type as string
     switch (type->type) {
         case PRIMITIVE:
             // Get primitive data type as string
             switch (type->data_type.primitive) {
                 case P_LONG:
-                    strcpy(buffer, "Long");
+                    strcpy(buffer, "long");
                     break;
                 case P_INT:
-                    strcpy(buffer, "Int");
+                    strcpy(buffer, "int");
                     break;
                 case P_SHORT:
-                    strcpy(buffer, "Short");
+                    strcpy(buffer, "short");
                     break;
                 case P_DOUBLE:
-                    strcpy(buffer, "Double");
+                    strcpy(buffer, "double");
                     break;
                 case P_FLOAT:
-                    strcpy(buffer, "Float");
+                    strcpy(buffer, "float");
                     break;
                 case P_BOOL:
-                    strcpy(buffer, "Bool");
+                    strcpy(buffer, "bool");
                     break;
                 case P_CHAR:
-                    strcpy(buffer, "Char");
+                    strcpy(buffer, "char");
                     break;
                 case P_STRING:
-                    strcpy(buffer, "String");
-                    break;
-                default:
-                    strcpy(buffer, "Void");
+                    strcpy(buffer, "string");
             }
             break;
-        case SUBROUTINE:
+        case SUBROUTINE_TYPE:
             // Get parameters recursively
-            char parameters[MAX_PARAMS * 50];
+            char parameters[MAX_PARAMS * 10];
+            parameters[0] = 0; // Set to empty string in case no parameters exist
             for (int i = 0; i < type->data_type.subroutine.parameter_size; i++) {
                 type_to_string(parameters + strlen(parameters),
                     type->data_type.subroutine.parameters[i]->type);
@@ -176,7 +180,7 @@ void type_to_string(char* buffer, struct DataType* type) {
             }
 
             // Get return type recursively
-            char return_type[50];
+            char return_type[10];
             type_to_string(return_type,
                 type->data_type.subroutine.return_type);
 

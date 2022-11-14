@@ -6,4 +6,5 @@ build/*
 testing/*
 
 # Compiled program
+build/*
 main

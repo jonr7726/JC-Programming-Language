@@ -18,7 +18,8 @@ struct Statement {
     enum StatementType {
         DECLARATION,
         ASSIGNMENT,
-        EXPRESSION
+        EXPRESSION,
+        SUBROUTINE
     } type; // Type of the statement
     union Statements {
         /* Declaration of an identifier. */
@@ -26,11 +27,17 @@ struct Statement {
             struct Identifier* identifier;
         } declaration;
         /* (Re)assignment of an identifier. */
-        struct Assignement {
+        struct VarAssignement {
             struct Identifier* identifier;
             struct Expression* expression;
         } assignment;
+        /* Expression (used for calling subroutines) */
         struct Expression* expression;
+        /* Subroutine definition */
+        struct Subroutine {
+            struct Identifier* identifier;
+            struct Statement* body;
+        } subroutine;
     } statement; // Statement (use type to determine which in union to use)
     struct Statement* next; // Next statement (or null pointer)
 };
@@ -85,8 +92,7 @@ enum PrimitiveDataType {
     P_FLOAT,
     P_BOOL,
     P_CHAR,
-    P_STRING,
-    P_VOID
+    P_STRING
 } primitive;
 
 /* Litteral value (expression). */
@@ -107,14 +113,14 @@ struct Litteral {
 struct DataType {
     enum Type {
         PRIMITIVE,
-        SUBROUTINE
+        SUBROUTINE_TYPE
     } type; // Type of the datatype
     union DataTypes {
         /* Primitive data type */
         enum PrimitiveDataType primitive;
 
         /* Subroutine data type */
-        struct Subroutine {
+        struct SubroutineDataType {
             struct Identifier* parameters[MAX_PARAMS];
             int parameter_size;
             struct DataType* return_type;
