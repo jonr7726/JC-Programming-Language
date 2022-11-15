@@ -1,18 +1,17 @@
-#include <stack>
-#include <llvm/Module.h>
-#include <llvm/Function.h>
-#include <llvm/Type.h>
-#include <llvm/DerivedTypes.h>
-#include <llvm/LLVMContext.h>
-#include <llvm/PassManager.h>
-#include <llvm/Instructions.h>
-#include <llvm/CallingConv.h>
-#include <llvm/Bitcode/ReaderWriter.h>
-#include <llvm/Analysis/Verifier.h>
-#include <llvm/Assembly/PrintModulePass.h>
-#include <llvm/Support/IRBuilder.h>
-#include <llvm/ModuleProvider.h>
-#include <llvm/Target/TargetSelect.h>
-#include <llvm/ExecutionEngine/GenericValue.h>
-#include <llvm/ExecutionEngine/JIT.h>
-#include <llvm/Support/raw_ostream.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <llvm-c/Core.h>
+#include <llvm-c/ExecutionEngine.h>
+#include <llvm-c/Target.h>
+#include <llvm-c/Analysis.h>
+#include <llvm-c/BitWriter.h>
+
+#include "ast_structure.h"
+
+/* Creates LLVM module from file given first Statment in AST and name of file. */
+LLVMModuleRef create_module(struct Statement* statements, char* file_name)
+
+/* Creates a subroutine, given a LLVM module and a Statement of type SUBROUTINE. */
+void create_subroutine(struct Subroutine* subroutine);

@@ -267,7 +267,7 @@ void print_ast(struct Statement* statement, int indent) {
 	printf("\n\n");
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 	yyparse();
 	printf("No Errors!\n");
 	printf("\n\n");

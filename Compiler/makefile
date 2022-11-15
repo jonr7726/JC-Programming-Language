@@ -1,7 +1,10 @@
 # https://medium.com/codex/building-a-c-compiler-using-lex-and-yacc-446262056aaa
 # 	https://github.com/AnjaneyaTripathi/c-compiler/blob/master/Part%206%20-%20Intermediate%20Code%20Generation/parser5.y
-# https://mukulrathi.com/create-your-own-programming-language/llvm-ir-cpp-api-tutorial/
 # https://gnuu.org/2009/09/18/writing-your-own-toy-compiler/
+
+# https://mukulrathi.com/create-your-own-programming-language/llvm-ir-cpp-api-tutorial/
+# https://www.pauladamsmith.com/blog/2015/01/how-to-get-started-with-llvm-c-api.html
+# 	https://github.com/paulsmith/getting-started-llvm-c-api/blob/master/sum.c
 
 # TODO: Add scope to identifiers
 

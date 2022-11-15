@@ -1,3 +1,6 @@
+#ifndef AST_STRUCTURE_H
+#define AST_STRUCTURE_H
+
 #define MAX_PARAMS 5
 
 struct Statement;
@@ -127,3 +130,5 @@ struct DataType {
         } subroutine;
     } data_type; // Datatype (use type to determine which in union to use)
 };
+
+#endif
