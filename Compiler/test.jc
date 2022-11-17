@@ -1,15 +1,6 @@
-int x;
-// comment
-int y;
-/*hello*/
-float z;
 
-x = 3;
-
-z = 3.5f;
-
-
-void main() {
+int main() {
     int xx;
     xx = 4;
+    return 2;
 }

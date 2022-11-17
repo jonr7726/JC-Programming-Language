@@ -1,21 +1,36 @@
 #include "codegen.h"
 
 /*
- * Creates LLVM module from file given first Statment in AST and name of file.
- * Returns refrence to module.
+ * Generates machine code output from file given first Statment in AST, name of source file and output file.
  */
-LLVMModuleRef create_module(struct Statement* statements, char* file_name) {
-    // Create module
-    LLVMModuleRef mod = LLVMModuleCreateWithName("module");
+void code_gen(struct Statement* statements, char* source_name, char* out_name) {
+    // Initilize LLVM objects
+    LLVMModuleRef module = LLVMModuleCreateWithName(source_name);
+    LLVMBuilderRef builder = LLVMCreateBuilder();
+    LLVMExecutionEngineRef engine;
+    
+    LLVMInitializeNativeAsmPrinter();
+    LLVMInitializeNativeAsmParser();
+    LLVMInitializeNativeTarget();
+    LLVMLinkInMCJIT();
+
+    // Create execution engine.
+    char* error;
+    if(LLVMCreateExecutionEngineForModule(&engine, module, &error) == 1) {
+        fprintf(stderr, "%s\n", error);
+        LLVMDisposeMessage(error);
+        exit(1);
+    }
 
     // Build all statements in module
     struct Statement* statement = statements;
+    LLVMValueRef main;
     while (statement != NULL) {
 
         switch (statement->type) {
             case SUBROUTINE:
                 // Create subroutine
-                create_subroutine(mod, statement->statement.subroutine)
+                main = create_subroutine(module, builder, statement->statement.subroutine);
                 break;
             // TODO: Add global variable declarations/assignments
             default:
@@ -25,29 +40,107 @@ LLVMModuleRef create_module(struct Statement* statements, char* file_name) {
 
         statement = statement->next;
     }
+
+    // Write machine code to file
+    if (LLVMWriteBitcodeToFile(module, out_name) != 0) {
+        fprintf(stderr, "Error writing machine code to file, skipping.\n");
+    }
+
+    // Print LLVM code to output
+    LLVMDumpModule(module);
+    
+    // Dispose
+    LLVMDisposeModule(module);
+    LLVMDisposeBuilder(builder);
 }
 
 /*
  * Creates a subroutine, given a LLVM module and the Subroutine.
  * Returns refrence to label of subroutine.
  */
-LLVMValueRef create_subroutine(LLVMModuleRef mod, struct Subroutine subroutine) {
+LLVMValueRef create_subroutine(LLVMModuleRef mod, LLVMBuilderRef builder,
+    struct Subroutine subroutine) {
+
     // Create subroutine label
     LLVMValueRef label = LLVMAddFunction(mod, subroutine.identifier->name,
         get_type(subroutine.identifier->type));
 
     // Create body block of subroutine
     LLVMBasicBlockRef entry = LLVMAppendBasicBlock(label, "entry");
-
-    // Set builder to body
-    LLVMBuilderRef builder = LLVMCreateBuilder();
     LLVMPositionBuilderAtEnd(builder, entry);
 
     // Build subroutine body
+    struct Statement* statement = subroutine.body;
+    bool returned = false;
+    while (statement != NULL) {
 
+        switch (statement->type) {
+            case SUBROUTINE_RETURN:
+                // TODO: Add checking for returning expression of inappropriate type
+                if (statement->statement.expression == NULL) {
+                    // Return from void subroutine
+                    LLVMBuildRetVoid(builder);
+                } else {
+                    // Return value from subroutine
+                    LLVMBuildRet(builder, create_expression(*statement->statement.expression));
+                }
+                returned = true;
+                break;
+            // TODO: Add nested subroutines
+            // TODO: Add local variable declarations/assignments
+        }
+
+        statement = statement->next;
+    }
+
+    // Add default return if no return
+    if (!returned) {
+        LLVMBuildRetVoid(builder);
+    }
+
+    return label;
 }
 
-
+/*
+ * Converts expression to LLVM value.
+ * (Beware of case when expression pointer points to NULL).
+ */
+LLVMValueRef create_expression(struct Expression expression) {
+    // Determine type of expression
+    switch (expression.type) {
+        case SUBROUTINE_CALL:
+            // TODO: Add subroutine call
+            return NULL;
+        case BINARY_OPERATION:
+            // TODO: Add binary operations
+            return NULL;
+        case UNARY_OPERATION:
+            // TODO: Add unary operation
+            return NULL;
+        case VARIABLE:
+            // TODO: Add variable
+            return NULL;
+        case LITTERAL:
+            // Determine type of litteral
+            switch (expression.expression.litteral->type) {
+                case P_LONG:
+                    return LLVMConstInt(LLVMInt64Type(), expression.expression.litteral->value.l_long, 1);
+                case P_INT:
+                    return LLVMConstInt(LLVMInt32Type(), expression.expression.litteral->value.l_long, 1);
+                case P_SHORT:
+                    return LLVMConstInt(LLVMInt16Type(), expression.expression.litteral->value.l_long, 1);
+                case P_DOUBLE:
+                    return LLVMConstReal(LLVMDoubleType(), expression.expression.litteral->value.l_double);
+                case P_FLOAT:
+                    return LLVMConstReal(LLVMFloatType(), expression.expression.litteral->value.l_double);
+                case P_BOOL:
+                    return LLVMConstInt(LLVMInt1Type(), expression.expression.litteral->value.l_long, 0);
+                case P_CHAR:
+                    return LLVMConstInt(LLVMInt8Type(), (long) expression.expression.litteral->value.l_char, 0);
+                // TODO: Add string litteral
+            }
+    }
+}
 
 /*
  * Converts a DataType struct to a LLVM type.
@@ -94,67 +187,4 @@ LLVMTypeRef get_type(struct DataType* type) {
             return LLVMFunctionType(get_type(type->data_type.subroutine.return_type),
                 param_types, type->data_type.subroutine.parameter_size, 0);
     }
-}
-
-int main(int argc, char const *argv[]) {
-    // Create module
-    LLVMModuleRef mod = LLVMModuleCreateWithName("module");
-
-    // Create function
-    LLVMBasicBlockRef entry = LLVMAppendBasicBlock(sum, "entry");
-
-    // Create builder
-    LLVMBuilderRef builder = LLVMCreateBuilder();
-    LLVMPositionBuilderAtEnd(builder, entry);
-
-    LLVMTypeRef param_types[] = { LLVMInt32Type(), LLVMInt32Type() };
-    LLVMTypeRef ret_type = LLVMFunctionType(LLVMInt32Type(), param_types, 2, 0);
-    LLVMValueRef sum = LLVMAddFunction(mod, "sum", ret_type);
-
-    LLVMBasicBlockRef entry = LLVMAppendBasicBlock(sum, "entry");
-
-    LLVMBuilderRef builder = LLVMCreateBuilder();
-    LLVMPositionBuilderAtEnd(builder, entry);
-    LLVMValueRef tmp = LLVMBuildAdd(builder, LLVMGetParam(sum, 0), LLVMGetParam(sum, 1), "tmp");
-    LLVMBuildRet(builder, tmp);
-
-    char *error = NULL;
-    LLVMVerifyModule(mod, LLVMAbortProcessAction, &error);
-    LLVMDisposeMessage(error);
-
-    LLVMExecutionEngineRef engine;
-    error = NULL;
-    LLVMLinkInJIT();
-    LLVMInitializeNativeTarget();
-    if (LLVMCreateExecutionEngineForModule(&engine, mod, &error) != 0) {
-        fprintf(stderr, "failed to create execution engine\n");
-        abort();
-    }
-    if (error) {
-        fprintf(stderr, "error: %s\n", error);
-        LLVMDisposeMessage(error);
-        exit(EXIT_FAILURE);
-    }
-
-    if (argc < 3) {
-        fprintf(stderr, "usage: %s x y\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-    long long x = strtoll(argv[1], NULL, 10);
-    long long y = strtoll(argv[2], NULL, 10);
-
-    LLVMGenericValueRef args[] = {
-        LLVMCreateGenericValueOfInt(LLVMInt32Type(), x, 0),
-        LLVMCreateGenericValueOfInt(LLVMInt32Type(), y, 0)
-    };
-    LLVMGenericValueRef res = LLVMRunFunction(engine, sum, 2, args);
-    printf("%d\n", (int)LLVMGenericValueToInt(res, 0));
-
-    // Write out bitcode to file
-    if (LLVMWriteBitcodeToFile(mod, "sum.bc") != 0) {
-        fprintf(stderr, "error writing bitcode to file, skipping\n");
-    }
-
-    LLVMDisposeBuilder(builder);
-    LLVMDisposeExecutionEngine(engine);
 }

@@ -22,7 +22,8 @@ struct Statement {
         DECLARATION,
         ASSIGNMENT,
         EXPRESSION,
-        SUBROUTINE
+        SUBROUTINE,
+        SUBROUTINE_RETURN
     } type; // Type of the statement
     union Statements {
         /* Declaration of an identifier. */
@@ -34,7 +35,7 @@ struct Statement {
             struct Identifier* identifier;
             struct Expression* expression;
         } assignment;
-        /* Expression (used for calling subroutines) */
+        /* Expression (used for calling subroutines, also used when returning expression) */
         struct Expression* expression;
         /* Subroutine definition */
         struct Subroutine {
@@ -96,7 +97,7 @@ enum PrimitiveDataType {
     P_BOOL,
     P_CHAR,
     P_STRING
-} primitive;
+};
 
 /* Litteral value (expression). */
 struct Litteral { 

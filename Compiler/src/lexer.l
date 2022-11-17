@@ -1,7 +1,7 @@
 %{
 	#include <string.h>
 	#include <stdlib.h>
-	#include "y.tab.h"
+	#include "parser.h"
 
 	void extern yyerror(char*);
 	void invalid_token();
@@ -30,6 +30,8 @@ commentMulti	\/\*(.*\n)*.*\*\/
 ")"						{ return BRACKET_CLOSE; }
 "{"						{ return BRACKET_CURLY_OPEN; }
 "}"						{ return BRACKET_CURLY_CLOSE; }
+
+"return"				{ return RETURN; }
 
 "int"					{ return INT_TYPE; }
 "float"					{ return FLOAT_TYPE; }

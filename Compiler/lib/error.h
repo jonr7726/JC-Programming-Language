@@ -2,7 +2,7 @@ extern void exit(int);
 
 void error(char* error_type, char* error_message, int line) {
 	fprintf(stderr, "%s on line %d:\n%s\n", error_type, line, error_message);
-	exit(0);
+	exit(1);
 }
 
 void declaration_error(char* error_message, int line) {
