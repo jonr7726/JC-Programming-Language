@@ -7,12 +7,13 @@
 # 	https://github.com/paulsmith/getting-started-llvm-c-api/blob/master/sum.c
 # https://github.com/benbjohnson/llvm-c-kaleidoscope/tree/master/src
 
-# TODO: Add scope to identifiers
+# TODO: Fix AST: use Malloc and only pointers to structs -remove all tables of AST nodes, conduct semantic checking at code generation
+# TODO: Pass around a scope hash map (of Identifier (not a pointer) -> LLVMValueRef)
 
 CC = gcc
 CXX = clang++
 CFLAGS = #-g -Wall -Wextra -Wno-self-assign -std=c99
-YFLAGS = -Wcounterexamples
+YFLAGS = #-Wcounterexamples
 LLVM_CC_FLAGS = `llvm-config --cflags`
 LLVM_LINK_FLAGS = `llvm-config --libs --cflags --ldflags core analysis executionengine interpreter native bitwriter --system-libs`
 
@@ -53,7 +54,8 @@ $(BUILD_DIR):
 .PHONY: clean
 clean:
 	rm -rf ${BUILD_DIR}/*
-	rm -f $(SRC_DIR)/parser.c
 	rm -f $(SRC_DIR)/parser.h
+	rm -f $(SRC_DIR)/parser.c
+	#rm -f $(SRC_DIR)/lexer.h
 	rm -f $(SRC_DIR)/lexer.c
 	rm $(TARGET)

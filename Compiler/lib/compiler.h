@@ -2,5 +2,5 @@
 
 #include "codegen.h"
 
-extern void parse();
-extern struct Statement* first;
+extern int yyparse();
+extern Node* first;

@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[]) {
     // Parse to AST
-    parse();
+    yyparse();
 
     // Code generation
     code_gen(first, "test.jc", "test");

@@ -1,6 +1,8 @@
 %{
 	#include <string.h>
 	#include <stdlib.h>
+
+	#include "ast_structure.h"
 	#include "parser.h"
 
 	void extern yyerror(char*);
