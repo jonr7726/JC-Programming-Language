@@ -7,8 +7,26 @@
 # 	https://github.com/paulsmith/getting-started-llvm-c-api/blob/master/sum.c
 # https://github.com/benbjohnson/llvm-c-kaleidoscope/tree/master/src
 
-# TODO: Fix AST: use Malloc and only pointers to structs -remove all tables of AST nodes, conduct semantic checking at code generation
-# TODO: Pass around a scope hash map (of Identifier (not a pointer) -> LLVMValueRef)
+
+
+# Make subroutine datatype only contain return value?
+# 	-That way parameter declaration stored in subroutine itself?
+#	-Rather than storing names in subroutine and datatypes in datatype?
+# \-> Subroutine contains datatype of return value and list of datatypes of parameters?
+# 		(Then also contains list of identifiers for parameters)
+
+# TODO:
+# 	- Parameters (parsing)
+# 		- Make parameter linked list with malloc, also add free function
+# 	- Local variables + parameters (code gen)
+# 		- Make scope table containing identifer, datatype and LLVMValueRef
+# 	- Symantic analysis (code gen)
+#		- Redeclaration of variable
+#		- Assignment with invalid data type
+#	- Operations (code gen)
+#	- String litterals (code gen)
+#	- Calling functions + inbuilt functions -printf (code gen)
+#	- Other data types (strings, structures, arrays, etc.)
 
 CC = gcc
 CXX = clang++

@@ -38,10 +38,13 @@ Node* create_expression_node(Expression* expression) {
 /*
  * Creates a new node in dynamic memory and returns pointer to it.
  */
-Node* create_subroutine_node(char* identifier, DataType* data_type, Node* body) {
+Node* create_subroutine_node(char* identifier, char** param_identifiers,
+    DataType* data_type, Node* body) {
+
     Node* node = (Node*) malloc(sizeof(Node));
     node->type = N_SUBROUTINE;
     node->node.subroutine.identifier = identifier;
+    node->node.subroutine.param_identifiers = param_identifiers;
     node->node.subroutine.data_type = data_type;
     node->node.subroutine.body = body;
     node->next = NULL;
@@ -118,12 +121,11 @@ DataType* create_primitive_data_type(enum PrimitiveDataType type) {
 /*
  * Creates a new DataType in dynamic memory and returns pointer to it.
  */
-DataType* create_subroutine_data_type(char** param_identifiers,
-    DataType** param_data_types, int param_size, DataType* return_type) {
+DataType* create_subroutine_data_type(DataType** param_data_types, int param_size,
+    DataType* return_type) {
 
     DataType* data_type = (DataType*) malloc(sizeof(DataType));
     data_type->type = T_SUBROUTINE;
-    data_type->data_type.subroutine.param_identifiers = param_identifiers;
     data_type->data_type.subroutine.param_data_types = param_data_types;
     data_type->data_type.subroutine.param_size = param_size;
     data_type->data_type.subroutine.return_type = return_type;
@@ -150,6 +152,7 @@ void free_node(Node* node) {
             break;
 
         case N_SUBROUTINE:
+            free(node->node.subroutine.param_identifiers);
             free_data_type(node->node.subroutine.data_type);
             // (Note we do not free body nodes for subroutines as this will already have been done)
     }
@@ -163,6 +166,9 @@ void free_expression(Expression* expression) {
     switch (expression->type) {
         case E_SUBROUTINE_CALL:
             if (expression->expression.subroutine_call.param_size > 0) {
+                for (int i = 0; i < expression->expression.subroutine_call.param_size; i++) {
+                    free(expression->expression.subroutine_call.params[i]);
+                }
                 free(expression->expression.subroutine_call.params);
             }
             break;
@@ -182,20 +188,13 @@ void free_expression(Expression* expression) {
  */
 void free_data_type(DataType* data_type) {
     if (data_type->type == T_SUBROUTINE) {
+        free(data_type->data_type.subroutine.return_type);
         if (data_type->data_type.subroutine.param_size > 0) {
-            free(data_type->data_type.subroutine.param_identifiers);
+            for (int i = 0; i < data_type->data_type.subroutine.param_size; i++) {
+                free(data_type->data_type.subroutine.param_data_types[i]);
+            }
             free(data_type->data_type.subroutine.param_data_types);
         }
     }
     free(data_type);
-}
-
-/*
- * Returns last node in linked list.
- */
-Node* get_last_node(Node* node) {
-    while (node->next != NULL) {
-        node = node->next;
-    }
-    return node;
 }

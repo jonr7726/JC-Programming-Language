@@ -33,11 +33,11 @@ void code_gen(Node* node, char* source_name, char* out_name) {
                 break;
             // TODO: Add global variable declarations/assignments
             default:
-                printf("ERROR\n");
-                // Error
+                printf("ERROR, NOT IMPLEMENTED\n");
 
         }
 
+        // Deallocate memory to node
         Node* next = node->next;
         free_node(node);
         node = next;
@@ -92,6 +92,7 @@ LLVMValueRef create_subroutine(LLVMModuleRef mod, LLVMBuilderRef builder,
             // TODO: Add local variable declarations/assignments
         }
 
+        // Deallocate memory to node
         Node* next = node->next;
         free_node(node);
         node = next;
@@ -109,7 +110,7 @@ LLVMValueRef create_subroutine(LLVMModuleRef mod, LLVMBuilderRef builder,
  * Converts expression to LLVM value.
  * (Beware of case when expression pointer points to NULL).
  */
-LLVMValueRef create_expression(Expression expression) {
+LLVMValueRef create_expression(/*struct Identifier* scope, */Expression expression) {
     // Determine type of expression
     switch (expression.type) {
         case E_SUBROUTINE_CALL:
@@ -146,14 +147,14 @@ LLVMValueRef create_expression(Expression expression) {
 /*
  * Converts a DataType struct to a LLVM type.
  */
-LLVMTypeRef get_type(DataType* type) {
+LLVMTypeRef get_type(/*struct Identifier* scope, */DataType* data_type) {
     // Handle NULL type
-    if (type == NULL) return LLVMVoidType();
+    if (data_type == NULL) return LLVMVoidType();
 
-    switch (type->type) {
+    switch (data_type->type) {
         // Handle primitive types
         case T_PRIMITIVE:
-            switch (type->data_type.primitive) {
+            switch (data_type->data_type.primitive) {
                 case P_LONG:
                     return LLVMInt64Type();
                 case P_INT:
@@ -172,14 +173,14 @@ LLVMTypeRef get_type(DataType* type) {
             }
         case T_SUBROUTINE:
             // Get parameter types
-            LLVMTypeRef* param_data_types = calloc(type->data_type.subroutine.param_size, sizeof(LLVMTypeRef));
-            for (int i = 0; i < type->data_type.subroutine.param_size; i++) {
+            LLVMTypeRef* param_data_types = calloc(data_type->data_type.subroutine.param_size, sizeof(LLVMTypeRef));
+            for (int i = 0; i < data_type->data_type.subroutine.param_size; i++) {
                 param_data_types[i] = get_type(
-                    type->data_type.subroutine.param_data_types[i]);
+                    data_type->data_type.subroutine.param_data_types[i]);
             }
 
             // Create subroutine type
-            return LLVMFunctionType(get_type(type->data_type.subroutine.return_type),
-                param_data_types, type->data_type.subroutine.param_size, 0);
+            return LLVMFunctionType(get_type(data_type->data_type.subroutine.return_type),
+                param_data_types, data_type->data_type.subroutine.param_size, 0);
     }
 }

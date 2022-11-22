@@ -12,3 +12,5 @@ testing/*
 # Compiled program
 main
 test
+test.c
+test.ll

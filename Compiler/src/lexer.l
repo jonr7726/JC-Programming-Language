@@ -28,6 +28,9 @@ commentMulti	\/\*(.*\n)*.*\*\/
 "="						{ return EQUALS; }
 "+"						{ return PLUS; }
 "-"						{ return MINUS; }
+
+","						{ return COMMA; }
+
 "("						{ return BRACKET_OPEN; }
 ")"						{ return BRACKET_CLOSE; }
 "{"						{ return BRACKET_CURLY_OPEN; }
