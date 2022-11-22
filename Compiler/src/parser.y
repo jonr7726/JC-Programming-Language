@@ -89,6 +89,11 @@ nodes	: node { $$ = $1; }
   
 node	: data_type IDENTIFIER SEMICOLON { $$ = create_declaration_node($2, $1); }
 		| IDENTIFIER EQUALS expression SEMICOLON { $$ = create_assignment_node($1, $3); }
+		| data_type IDENTIFIER EQUALS expression SEMICOLON {
+			// Split statement into declaration and assignment nodes
+			$$ = create_declaration_node($2, $1);
+			$$->next = create_assignment_node($2, $4);
+		}
 		| data_type IDENTIFIER BRACKET_OPEN BRACKET_CLOSE BRACKET_CURLY_OPEN nodes BRACKET_CURLY_CLOSE {
 			// Subroutine with no parameters
 			$$ = create_subroutine_node($2, NULL, create_subroutine_data_type(NULL, 0, $1), $6);

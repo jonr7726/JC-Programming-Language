@@ -8,7 +8,6 @@
 # https://github.com/benbjohnson/llvm-c-kaleidoscope/tree/master/src
 
 # TODO:
-# 	- Local variables (code gen)
 # 	- Symantic analysis (code gen)
 #		- Redeclaration of variable
 #		- Assignment with invalid data type

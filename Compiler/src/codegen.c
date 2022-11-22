@@ -81,23 +81,80 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
     LLVMBasicBlockRef entry = LLVMAppendBasicBlock(label, "entry");
     LLVMPositionBuilderAtEnd(builder, entry);
 
-    // Create local scope with parameters
-    SymbolTable localScope = NULL;
+    // Create parameters symbol table
+    SymbolTable parameters = NULL;
     for (int i = 0; i < subroutine.data_type->data_type.subroutine.param_size; i++) {
         SymbolTable symbol = (SymbolTable) malloc(sizeof(struct Symbol));
         symbol->identifier = subroutine.param_identifiers[i];
         symbol->data_type = subroutine.data_type->data_type.subroutine.param_data_types[i];
-        symbol->refrence = LLVMGetParam(label, i);
+        symbol->refrence = LLVMGetParam(label, i); // Get refrence from function parameters
         symbol->next = NULL;
-        add_symbol(&localScope, symbol);
+        add_symbol(&parameters, symbol);
     }
 
     // Build subroutine body
     Node* node = subroutine.body;
+    SymbolTable localScope = NULL;
     bool returned = false;
     while (node != NULL) {
 
+        SymbolTable symbol;
         switch (node->type) {
+            case N_DECLARATION:
+                // TODO: Add checking for declaring existing identifier
+
+                // Add identifier to symbol table
+                symbol = (SymbolTable) malloc(sizeof(struct Symbol));
+                symbol->identifier = node->node.declaration.identifier;
+                symbol->data_type = node->node.declaration.data_type;
+                symbol->refrence = LLVMBuildAlloca(
+                    builder,
+                    get_type(node->node.declaration.data_type),
+                    node->node.declaration.identifier
+                ); // Allocate memory to store datatype
+                symbol->next = NULL;
+                add_symbol(&localScope, symbol);
+                break;
+            case N_ASSIGNMENT:
+                // TODO: Add checking for assigning incorrect type
+
+                // Get variable symbol from local scope
+                symbol = get_symbol(localScope,
+                    node->node.assignment.identifier);
+                if (symbol == NULL) {
+                    // Get variable symbol from parameters
+                    symbol = get_symbol(parameters,
+                        node->node.assignment.identifier);
+
+                    if (symbol == NULL) {
+                        printf("Error, could not find variable identifier\n");
+                        exit(1);
+                    }
+
+                    // Create local variable for non-static parameter
+                    SymbolTable localSymbol = (SymbolTable) malloc(sizeof(struct Symbol));
+                    localSymbol->identifier = node->node.assignment.identifier;
+                    localSymbol->data_type = symbol->data_type;
+                    localSymbol->refrence = LLVMBuildAlloca(
+                        builder,
+                        LLVMTypeOf(symbol->refrence),
+                        node->node.assignment.identifier
+                    ); // Allocate memory to store datatype
+                    localSymbol->next = NULL;
+                    add_symbol(&localScope, localSymbol);
+
+                    // Set symbol to new local variable
+                    symbol = localSymbol;
+                }
+
+                // Store value to variable
+                LLVMBuildStore(
+                    builder,
+                    create_expression(builder, globalScope, localScope,
+                        parameters, node->node.assignment.expression),
+                    symbol->refrence
+                );
+                break;
             case N_RETURN:
                 // TODO: Add checking for returning expression of inappropriate type
                 if (node->node.expression == NULL) {
@@ -105,13 +162,11 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
                     LLVMBuildRetVoid(builder);
                 } else {
                     // Return value from subroutine
-                    LLVMValueRef ret = create_expression(builder,
-                        globalScope, localScope, node->node.expression);
-                    LLVMBuildRet(builder, ret);
+                    LLVMBuildRet(builder, create_expression(builder,
+                        globalScope, localScope, parameters, node->node.expression));
                 }
                 returned = true;
                 break;
-            // TODO: Add local variable declarations/assignments
             // TODO: Add nested subroutines
         }
 
@@ -134,7 +189,7 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
  * (Beware of case when expression pointer points to NULL).
  */
 LLVMValueRef create_expression(LLVMBuilderRef builder, SymbolTable globalScope,
-    SymbolTable localScope, Expression* expression) {
+    SymbolTable localScope, SymbolTable parameters, Expression* expression) {
 
     SymbolTable symbol;
 
@@ -159,7 +214,7 @@ LLVMValueRef create_expression(LLVMBuilderRef builder, SymbolTable globalScope,
             );
             for (int i = 0; i < expression->expression.subroutine_call.param_size; i++) {
                 args[i] = create_expression(builder, globalScope, localScope,
-                    expression->expression.subroutine_call.params[i]);
+                    parameters, expression->expression.subroutine_call.params[i]);
             }
 
             // Create subroutine call
@@ -177,16 +232,26 @@ LLVMValueRef create_expression(LLVMBuilderRef builder, SymbolTable globalScope,
         case E_VARIABLE:
             // TODO: Add checks for variable types
 
-            // Get variable symbol
+            // Get variable symbol in local scope
             symbol = get_symbol(localScope,
                 expression->expression.identifier);
 
             if (symbol == NULL) {
-                printf("Error, could not find variable identifier\n");
-                exit(1);
-            }
+                // Get variable symbol in parameters
+                symbol = get_symbol(parameters,
+                    expression->expression.identifier);
 
-            return symbol->refrence;
+                if (symbol == NULL) {
+                    printf("Error, could not find variable identifier\n");
+                    exit(1);
+                }
+
+                return symbol->refrence;
+            } else {
+                // Load local variable
+                return LLVMBuildLoad2(builder, get_type(symbol->data_type),
+                    symbol->refrence, symbol->identifier);
+            }
         case E_LITTERAL:
             // Determine type of litteral
             switch (expression->expression.litteral.type) {

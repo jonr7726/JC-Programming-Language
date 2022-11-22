@@ -42,7 +42,7 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
  * (Beware of case when expression pointer points to NULL).
  */
 LLVMValueRef create_expression(LLVMBuilderRef builder, SymbolTable globalScope,
-    SymbolTable localScope, Expression* expression);
+    SymbolTable localScope, SymbolTable parameters, Expression* expression);
 
 /*
  * Converts a DataType struct to a LLVM type.
