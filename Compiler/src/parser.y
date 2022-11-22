@@ -41,7 +41,6 @@
 	Expression* expression;
 	DataType* data_type;
 
-	enum OperationType operation;
 	enum PrimitiveDataType primitive;
 
 	struct ExpressionList* expressions;
@@ -53,7 +52,8 @@
 
 
 /* Terminal Symbols */
-%token <token> SEMICOLON COMMA BRACKET_OPEN BRACKET_CLOSE BRACKET_CURLY_OPEN BRACKET_CURLY_CLOSE EQUALS PLUS MINUS
+%token <token> SEMICOLON COMMA BRACKET_OPEN BRACKET_CLOSE BRACKET_CURLY_OPEN BRACKET_CURLY_CLOSE
+%token <token> EQUALS PLUS MINUS ASTERISK SLASH_FORWARD
 %token <token> INT_TYPE FLOAT_TYPE VOID_TYPE
 %token <token> RETURN
 %token <string> LONG_VALUE INT_VALUE SHORT_VALUE DOUBLE_VALUE FLOAT_VALUE
@@ -66,11 +66,11 @@
 %type <expressions> param_exprs param_expr
 
 %type <expression> expression litteral
-%type <operation> bin_operator pre_un_operator
 %type <data_type> data_type
 
 /* Operator precedence */
 %left PLUS MINUS
+%left ASTERISK SLASH_FORWARD
 
 /* Top node of AST */
 %start program
@@ -124,8 +124,12 @@ expression	: IDENTIFIER BRACKET_OPEN BRACKET_CLOSE {
 			}
 			| IDENTIFIER { $$ = create_variable($1); }
 			| litteral { $$ = $1; }
-			| expression bin_operator expression { $$ = create_operation($2, $1, $3); }
-			| expression pre_un_operator { $$ = create_operation($2, $1, NULL); }
+			| BRACKET_OPEN expression BRACKET_CLOSE { $$ = $2; }
+			| expression PLUS expression { $$ = create_operation(O_ADD, $1, $3); }
+			| expression MINUS expression { $$ = create_operation(O_SUBTRACT, $1, $3); }
+			| expression ASTERISK expression { $$ = create_operation(O_MULTIPLY, $1, $3); }
+			| expression SLASH_FORWARD expression { $$ = create_operation(O_DIVIDE, $1, $3); }
+			| MINUS expression { $$ = create_operation(O_COMPLEMENT, $2, NULL); }
 			;
 
 param_exprs	: param_expr { $$ = $1; }
@@ -140,13 +144,6 @@ data_type	: INT_TYPE { $$ = create_primitive_data_type(P_INT); }
 			| FLOAT_TYPE { $$ = create_primitive_data_type(P_FLOAT); }
 			| VOID_TYPE { $$ = NULL; }
 			;
-
-bin_operator	: PLUS { $$ = O_ADD; }
-				| MINUS { $$ = O_SUBTRACT; }
-				;
-
-pre_un_operator	: MINUS { $$ = O_COMPLEMENT; }
-				;
 
 litteral	: LONG_VALUE { $$ = create_litteral(P_LONG, 10, $1); }
 			| INT_VALUE { $$ = create_litteral(P_INT, 10, $1); }

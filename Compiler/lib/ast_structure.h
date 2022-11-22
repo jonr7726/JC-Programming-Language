@@ -94,6 +94,8 @@ struct Expressions {
             enum OperationType { 
                 O_ADD,
                 O_SUBTRACT,
+                O_MULTIPLY,
+                O_DIVIDE,
                 O_COMPLEMENT
             } type; // Operator
             Expression* lhs; // Left hand side of operator

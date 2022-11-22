@@ -99,6 +99,7 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
     while (node != NULL) {
 
         SymbolTable symbol;
+        SymbolTable localSymbol;
         switch (node->type) {
             case N_DECLARATION:
                 // TODO: Add checking for declaring existing identifier
@@ -121,6 +122,7 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
                 // Get variable symbol from local scope
                 symbol = get_symbol(localScope,
                     node->node.assignment.identifier);
+                localSymbol = NULL;
                 if (symbol == NULL) {
                     // Get variable symbol from parameters
                     symbol = get_symbol(parameters,
@@ -132,7 +134,7 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
                     }
 
                     // Create local variable for non-static parameter
-                    SymbolTable localSymbol = (SymbolTable) malloc(sizeof(struct Symbol));
+                    localSymbol = (SymbolTable) malloc(sizeof(struct Symbol));
                     localSymbol->identifier = node->node.assignment.identifier;
                     localSymbol->data_type = symbol->data_type;
                     localSymbol->refrence = LLVMBuildAlloca(
@@ -141,7 +143,6 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
                         node->node.assignment.identifier
                     ); // Allocate memory to store datatype
                     localSymbol->next = NULL;
-                    add_symbol(&localScope, localSymbol);
 
                     // Set symbol to new local variable
                     symbol = localSymbol;
@@ -154,6 +155,11 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
                         parameters, node->node.assignment.expression),
                     symbol->refrence
                 );
+
+                if (localSymbol != NULL) {
+                    // Add new local variable to scope (done here to prevent errors when it is refrenced in expression created above)
+                    add_symbol(&localScope, localSymbol);
+                }
                 break;
             case N_RETURN:
                 // TODO: Add checking for returning expression of inappropriate type
@@ -166,6 +172,10 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
                         globalScope, localScope, parameters, node->node.expression));
                 }
                 returned = true;
+                break;
+            case N_EXPRESSION:
+                create_expression(builder, globalScope, localScope,
+                    parameters, node->node.expression);
                 break;
             // TODO: Add nested subroutines
         }
@@ -191,8 +201,9 @@ LLVMValueRef create_subroutine(SymbolTable globalScope, LLVMModuleRef mod,
 LLVMValueRef create_expression(LLVMBuilderRef builder, SymbolTable globalScope,
     SymbolTable localScope, SymbolTable parameters, Expression* expression) {
 
-    SymbolTable symbol;
+    if (expression == NULL) return NULL;
 
+    SymbolTable symbol;
     // Determine type of expression
     switch (expression->type) {
         case E_SUBROUTINE_CALL:
@@ -227,8 +238,64 @@ LLVMValueRef create_expression(LLVMBuilderRef builder, SymbolTable globalScope,
                 expression->expression.subroutine_call.identifier
             );
         case E_OPERATION:
-            // TODO: Add operations
-            return NULL;
+            // TODO: Add checks for operation types and implicit casts
+
+            // Evaluate operands
+            LLVMValueRef lhs = create_expression(builder, globalScope,
+                localScope, parameters, expression->expression.operation.lhs);
+            LLVMValueRef rhs = create_expression(builder, globalScope,
+                localScope, parameters, expression->expression.operation.rhs);
+
+            switch (expression->expression.operation.type) {
+                /* Binary Operations */
+                case O_ADD:
+                    if (LLVMGetTypeKind(LLVMTypeOf(lhs)) == LLVMIntegerTypeKind) {
+                        // Integer addition
+                        return LLVMBuildAdd(builder, lhs, rhs, "");
+                    } else {
+                        // Floating point addition
+                        return LLVMBuildFAdd(builder, lhs, rhs, "");
+                    }
+                case O_SUBTRACT:
+                    if (LLVMGetTypeKind(LLVMTypeOf(lhs)) == LLVMIntegerTypeKind) {
+                        // Integer subtraction
+                        return LLVMBuildSub(builder, lhs, rhs, "");
+                    } else {
+                        // Floating point subtraction
+                        return LLVMBuildFSub(builder, lhs, rhs, "");
+                    }
+                    break;
+                case O_MULTIPLY:
+                    if (LLVMGetTypeKind(LLVMTypeOf(lhs)) == LLVMIntegerTypeKind) {
+                        // Integer multiplication
+                        return LLVMBuildMul(builder, lhs, rhs, "");
+                    } else {
+                        // Floating point multiplication
+                        return LLVMBuildFMul(builder, lhs, rhs, "");
+                    }
+                case O_DIVIDE:
+                    if (LLVMGetTypeKind(LLVMTypeOf(lhs)) == LLVMIntegerTypeKind) {
+                        // Integer division (signed)
+                        return LLVMBuildSDiv(builder, lhs, rhs, "");
+                    } else {
+                        // Floating point division
+                        return LLVMBuildFDiv(builder, lhs, rhs, "");
+                    }
+                    break;
+
+                /* Pre-unary Operations */
+                case O_COMPLEMENT:
+                    if (LLVMGetTypeKind(LLVMTypeOf(rhs)) == LLVMIntegerTypeKind) {
+                        // Integer complement
+                        return LLVMBuildNeg(builder, rhs, "");
+                    } else {
+                        // Floating point complement
+                        return LLVMBuildFNeg(builder, rhs, "");
+                    }
+                    break;
+
+                /* Post-unary Operations */
+            }
         case E_VARIABLE:
             // TODO: Add checks for variable types
 

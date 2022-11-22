@@ -1,10 +1,13 @@
 
-int test(int a) {
-    a = 5;
-    return a;
+int add(int a, int b) {
+    return a + b;
+}
+
+int mul(int a, int b) {
+    return a * b;
 }
 
 int main() {
-    int x = 7;
-    return test(x);
+    int res = mul(5, 3) - 9;
+    return (50 - res) / 4 + 1;
 }

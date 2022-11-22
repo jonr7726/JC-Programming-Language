@@ -28,6 +28,8 @@ commentMulti	\/\*(.*\n)*.*\*\/
 "="						{ return EQUALS; }
 "+"						{ return PLUS; }
 "-"						{ return MINUS; }
+"*"						{ return ASTERISK; }
+"/"						{ return SLASH_FORWARD; }
 
 ","						{ return COMMA; }
 
