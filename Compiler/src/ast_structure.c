@@ -136,6 +136,7 @@ DataType* create_subroutine_data_type(DataType** param_data_types, int param_siz
  * Deallocates memory from node and all expressions and datatypes within it.
  */
 void free_node(Node* node) {
+    // Note, we do not free datatypes of identifiers being declared as they are used by symbol tables
     switch (node->type) {
         case N_RETURN:
             if (node->node.expression == NULL) break;
@@ -147,14 +148,9 @@ void free_node(Node* node) {
             free_expression(node->node.assignment.expression);
             break;
 
-        case N_DECLARATION:
-            free_data_type(node->node.declaration.data_type);
-            break;
-
         case N_SUBROUTINE:
             free(node->node.subroutine.param_identifiers);
-            free_data_type(node->node.subroutine.data_type);
-            // (Note we do not free body nodes for subroutines as this will already have been done)
+            // Note we do not free body nodes for subroutines as this will already have been done
     }
     free(node);
 }

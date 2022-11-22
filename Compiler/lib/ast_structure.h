@@ -5,6 +5,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// Gets last element in linked list
+#define GET_LAST(element) while (element->next != NULL) { \
+        element = element->next; \
+    } \
+    element
+
 typedef struct Nodes Node;
 typedef struct Expressions Expression;
 typedef struct DataTypes DataType;

@@ -7,12 +7,6 @@
 	#include "error.h"
 	#include "ast_structure.h"
 
-	// Gets last element in linked list
-	#define GET_LAST(element) while (element->next != NULL) { \
-	    	element = element->next; \
-	    } \
-	    element
-
 	struct ExpressionList { // Linked list of expressions
 		Expression* expression;
 		struct ExpressionList* next; // Next in linked list, or NULL
@@ -189,7 +183,7 @@ Node* create_subroutine_node_wrapper(char* identifier,
 	// Count parameters
 	int param_size = 0;
 	struct DeclarationList* param_decl = param_decls;
-	while (param_decl->next != NULL) {
+	while (param_decl != NULL) {
         param_decl = param_decl->next;
         param_size++;
     }
@@ -200,7 +194,7 @@ Node* create_subroutine_node_wrapper(char* identifier,
 
     // Initialize parameter identifiers and datatypes
 	param_decl = param_decls;
-	for (int i = 0; i <= param_size; i++) {
+	for (int i = 0; i < param_size; i++) {
 		param_identifiers[i] = param_decl->identifier;
 		param_data_types[i] = param_decl->data_type;
 
@@ -225,7 +219,7 @@ Expression* create_subroutine_call_wrapper(char* identifier,
 	// Count parameters
 	int param_size = 0;
 	struct ExpressionList* param_expr = param_exprs;
-	while (param_expr->next != NULL) {
+	while (param_expr != NULL) {
         param_expr = param_expr->next;
         param_size++;
     }
@@ -235,7 +229,7 @@ Expression* create_subroutine_call_wrapper(char* identifier,
 
     // Initialize parameter identifiers and datatypes
 	param_expr = param_exprs;
-	for (int i = 0; i <= param_size; i++) {
+	for (int i = 0; i < param_size; i++) {
 		params[i] = param_expr->expression;
 
 		// Free memory of parameter expression
